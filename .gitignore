@@ -1,0 +1,7 @@
+/.lake
+tmp/
+
+# Nix
+result
+result-*
+.direnv/
