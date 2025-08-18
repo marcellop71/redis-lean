@@ -119,6 +119,8 @@ theorem del_nonexistent_returns_false :
 
 ### Why formal modeling?
 
+What is *Redis*? Building a model of this database means giving a precise answer to this question, precise specifications for your objects. A model is an abstract, conceptual playground, where you can prove theorems and establish properties, you can make assumptions and derive claims.
+
 - **Brainstorming**: The formal model enables reasoning about fundamental Redis properties
 - **Precision**: Mathematical definitions eliminate ambiguity found in informal specifications  
 - **Verification**: Prove correctness properties that testing alone cannot guarantee  
@@ -127,26 +129,15 @@ theorem del_nonexistent_returns_false :
 
 This approach separates the **what** (abstract specification) from the **how** (concrete implementation), enabling rigorous mathematical reasoning about Redis behavior independently of implementation details.
 
+Clearly enough, working on a model of Redis is quite different from building a client, which is meant to interact with the real *Redis*.
+
 A well-done model could provide the mathematical framework for:
 
-**Event Sourcing Verification**: Prove that any Redis implementation correctly implements event sourcing semantics where state is derived from operation history
-**Consistency Guarantees**: Formally verify that operations maintain consistency invariants like key isolation and set-get coherence
-**State Reconstruction**: Mathematically demonstrate that database state can be reconstructed by replaying write operations from empty initial state
-**Implementation Correctness**: Provide specification against which concrete Redis implementations can be verified
-**Usage for Verification**: The abstract model serves as a formal specification that concrete implementations should satisfy:
-
-```lean
--- Any concrete Redis implementation should satisfy these properties
--- This enables formal verification of client libraries and servers
-theorem concrete_implementation_correct 
-  (concrete_impl : ConcreteRedisOps) :
-  SatisfiesAbstractSpec concrete_impl AbstractMinimal.AbstractOps :=
-  sorry -- Proof that concrete implementation satisfies abstract specification
-```
-
-What is *Redis*? Building a model of this database means giving a precise answer to this question, precise specifications for your objects. A model is an abstract, conceptual playground, where you can prove theorems and establish properties, you can make assumptions and derive claims. A model can remain simple (for example, in the case of *Redis*, by leaving out key expiry), yet still be effective in showing the benefits of this approach.
-
-Clearly enough, working on a model of Redis is quite different from building a client, which is meant to interact with the real *Redis*. At the moment, the fact that the Redis database conforms to its model is more of an external assumption than something verified within the project.
+- **Event Sourcing Verification**: Prove that any Redis implementation correctly implements event sourcing semantics where state is derived from operation history
+- **Consistency Guarantees**: Formally verify that operations maintain consistency invariants like key isolation and set-get coherence
+- **State Reconstruction**: Mathematically demonstrate that database state can be reconstructed by replaying write operations from empty initial state
+- **Implementation Correctness**: Provide specification against which concrete Redis implementations can be verified
+- **Usage for Verification**: The abstract model serves as a formal specification that concrete implementations should satisfy.
 
 Ultimately, we need models that reflect reality: models of databases, models of networks, models of all the relevant components. Only with such models can we demonstrate interesting properties within the model.
 
