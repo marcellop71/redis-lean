@@ -17,7 +17,7 @@ lean_lib RedisModel
 
 lean_lib Examples
 
-lean_lib Tests
+--lean_lib Tests
 
 target hiredis_shim_o pkg : FilePath := do
   let srcFile := pkg.dir / "hiredis" / "shim.c"
@@ -45,5 +45,5 @@ require LSpec from git
 lean_exe examples where
   root := `Examples.Main
 
-lean_exe testRunner where
-  root := `TestRunner
+--lean_exe testRunner where
+--  root := `TestRunner

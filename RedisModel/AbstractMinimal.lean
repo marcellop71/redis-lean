@@ -93,11 +93,6 @@ axiom get_nonexistent_key :
 axiom monadic_composition {α β : Type} (m1 : RedisM DB α) (m2 : RedisM DB β) :
   (⇐ (m1 *> m2) on db) = (⇐ m2 on (≡ m1 on db))
 
--- operations on different keys don't interfere
-axiom set_isolation :
-  k1 ≠ k2 →
-  (⇐ ops.get k2 on db) = (⇐ (ops.set k1 v *> ops.get k2) on db)
-
 -- deleting a key makes it not exist
 axiom del_removes_key :
   (⇐ (ops.del k *> ops.existsKey k) on db) = false
@@ -115,6 +110,13 @@ axiom observability :
     (∀ (k : α), (⇐ ops.get k on db1) = (⇐ ops.get k on db2)) →
     (∀ (k : α), (⇐ ops.existsKey k on db1) = (⇐ ops.existsKey k on db2)) →
     db1 = db2
+
+-- key isolation: operations on different keys don't interfere with observable behavior
+axiom key_isolation :
+  ∀ (k1 k2 : α) (v : γ) (db : DB),
+    k1 ≠ k2 →
+    (⇐ ops.get k2 on db) = (⇐ ops.get k2 on (≡ ops.set k1 v on db)) ∧
+    (⇐ ops.existsKey k2 on db) = (⇐ ops.existsKey k2 on (≡ ops.set k1 v on db))
 
 -- two databases are equivalent if they have the same observable behavior
 def db_equivalent (db1 db2 : DB) : Prop :=
@@ -195,6 +197,14 @@ theorem set_overwrite :
   (⇐ (ops.set k v1 *> ops.set k v2 *> ops.get k) on db) = some v2 := by
   rw [monadic_composition]
   exact set_get_consistency k v2 (≡ ops.set k v1 on db)
+
+-- operations on different keys don't interfere
+theorem set_isolation :
+  k1 ≠ k2 →
+  (⇐ ops.get k2 on db) = (⇐ (ops.set k1 v *> ops.get k2) on db) := by
+  intro h_different
+  rw [monadic_composition]
+  exact (key_isolation k1 k2 v db h_different).1
 
 end AbstractRedis
 
