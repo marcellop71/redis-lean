@@ -72,30 +72,26 @@ axiom existsKey_preserves_state :
 axiom del_alters_state_iff_exists :
   (≡ ops.del k on db) ≠ db ↔ (⇐ ops.existsKey k on db) = true
 
--- setting a key-value pair makes the key exist
-axiom set_creates_key :
-  (⇐ (ops.set k v *> ops.existsKey k) on db) = true
-
--- after setting a key-value pair, getting that key returns the set value
-axiom set_get_consistency :
-  (⇐ (ops.set k v *> ops.get k) on db) = some v
-
 -- set alters state only if key doesn't exist or exists with different value
 axiom set_alters_state_iff_new_or_different :
   (≡ ops.set k v on db) ≠ db ↔
   ((⇐ ops.existsKey k on db) = false ∨ (⇐ ops.get k on db) ≠ some v)
 
--- set is idempotent: setting a key to its current value doesn't change state
-axiom set_idempotent :
-  (⇐ ops.get k on db) = some v → (≡ ops.set k v on db) = db
+-- after setting a key-value pair, getting that key returns the set value
+axiom set_get_consistency :
+  (⇐ (ops.set k v *> ops.get k) on db) = some v
 
 -- getting a non-existent key returns none implies key doesn't exist
 axiom get_nonexistent :
   (⇐ ops.get k on db) = none → (⇐ ops.existsKey k on db) = false
 
--- setting a key twice overwrites the previous value
-axiom set_overwrite :
-  (⇐ (ops.set k v1 *> ops.set k v2 *> ops.get k) on db) = some v2
+-- if a key doesn't exist, getting it returns none
+axiom get_nonexistent_key :
+  (⇐ ops.existsKey k on db) = false → (⇐ ops.get k on db) = none
+
+-- monadic composition axiom: (m1 *> m2) is equivalent to m2 on the state after m1
+axiom monadic_composition {α β : Type} (m1 : RedisM DB α) (m2 : RedisM DB β) :
+  (⇐ (m1 *> m2) on db) = (⇐ m2 on (≡ m1 on db))
 
 -- operations on different keys don't interfere
 axiom set_isolation :
@@ -109,10 +105,6 @@ axiom del_removes_key :
 -- delete returns true if key existed, false otherwise
 axiom del_returns_status :
   (⇐ ops.del k on db) = (⇐ ops.existsKey k on db)
-
--- after deletion, get returns none
-axiom del_affects_get :
-  (⇐ (ops.del k *> ops.get k) on db) = none
 
 -- there exists an initial empty database state
 axiom exists_empty_db : ∃ (db : DB), (∀ (k : α), (⇐ ops.existsKey k on db) = false)
@@ -154,22 +146,55 @@ example (k : α) : AlterOp DB := (ops.del k).map (fun _ => ())
 example (k1 k2 : α) (v1 v2 : γ) : EventHistory DB :=
   [ops.set k1 v1, ops.set k2 v2, (ops.del k1).map (fun _ => ())]
 
--- setting a key makes it exist
-theorem set_makes_key_exist :
-  (⇐ (ops.set k v *> ops.existsKey k) on db) = true := by
-  apply set_creates_key
+-- after deletion, get returns none  
+theorem del_affects_get :
+  (⇐ (ops.del k *> ops.get k) on db) = none := by
+  rw [monadic_composition]
+  have h1 : (⇐ (ops.del k *> ops.existsKey k) on db) = false := del_removes_key k db
+  have h2 : (⇐ ops.existsKey k on (≡ ops.del k on db)) = false := by
+    rw [← monadic_composition]
+    exact h1
+  exact get_nonexistent_key k (≡ ops.del k on db) h2
 
--- getting after setting returns the set value
-theorem get_after_set :
-  (⇐ (ops.set k v *> ops.get k) on db) = some v := by
-  apply set_get_consistency
-
--- deleting a non-existent key returns false
-theorem del_nonexistent_returns_false :
-  (⇐ ops.existsKey k on db) = false → (⇐ ops.del k on db) = false := by
+-- set is idempotent: setting a key to its current value doesn't change state
+theorem set_idempotent :
+  (⇐ ops.get k on db) = some v → (≡ ops.set k v on db) = db := by
   intro h
-  rw [del_returns_status]
-  exact h
+  suffices h_not_neq : ¬((≡ ops.set k v on db) ≠ db) by
+    exact Classical.not_not.mp h_not_neq
+  rw [set_alters_state_iff_new_or_different]
+  simp only [not_or]
+  constructor
+  · 
+    intro h_key_not_exists
+    have get_none := get_nonexistent_key k db h_key_not_exists
+    rw [h] at get_none
+    simp at get_none
+  · 
+    intro h_value_different
+    exact h_value_different h
+
+-- setting a key-value pair makes the key exist
+theorem set_creates_key :
+  (⇐ (ops.set k v *> ops.existsKey k) on db) = true := by
+  rw [monadic_composition]
+  have h_get_some : (⇐ ops.get k on (≡ ops.set k v on db)) = some v := by
+    rw [← monadic_composition]
+    exact set_get_consistency k v db
+  have h_not_false : ¬((⇐ ops.existsKey k on (≡ ops.set k v on db)) = false) := by
+    intro h_false
+    have h_get_none := get_nonexistent_key k (≡ ops.set k v on db) h_false
+    rw [h_get_some] at h_get_none
+    simp at h_get_none
+  cases h_eq : (⇐ ops.existsKey k on (≡ ops.set k v on db))
+  · exact False.elim (h_not_false h_eq)
+  · rfl
+
+-- setting a key twice overwrites the previous value
+theorem set_overwrite :
+  (⇐ (ops.set k v1 *> ops.set k v2 *> ops.get k) on db) = some v2 := by
+  rw [monadic_composition]
+  exact set_get_consistency k v2 (≡ ops.set k v1 on db)
 
 end AbstractRedis
 

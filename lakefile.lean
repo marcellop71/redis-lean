@@ -17,6 +17,8 @@ lean_lib RedisModel
 
 lean_lib Examples
 
+lean_lib Tests
+
 target hiredis_shim_o pkg : FilePath := do
   let srcFile := pkg.dir / "hiredis" / "shim.c"
   let oFile   := pkg.buildDir / "hiredis" / "shim.o"
@@ -36,6 +38,12 @@ require mathlib from git
 require Cli from git
   "https://github.com/leanprover/lean4-cli.git" @ "main"
 
+require LSpec from git
+  "https://github.com/argumentcomputer/LSpec.git" @ "main"
+
 @[default_target]
 lean_exe examples where
   root := `Examples.Main
+
+lean_exe testRunner where
+  root := `TestRunner
