@@ -110,14 +110,14 @@ axiom observability :
     (∀ (k : α), (⇐ EXISTS k on db1) = (⇐ EXISTS k on db2)) →
     db1 = db2
 
--- key isolation: operations on different keys don't interfere with observable behavior
-axiom key_isolation :
+-- set isolation: set operations on a different key don't interfere with observable behavior
+axiom set_isolation :
   ∀ (k1 k2 : α) (v : γ) (db : DB),
     k1 ≠ k2 →
     (⇐ GET k2 on db) = (⇐ GET k2 on (≡ SET k1 v on db)) ∧
     (⇐ EXISTS k2 on db) = (⇐ EXISTS k2 on (≡ SET k1 v on db))
 
--- del isolation: deleting one key doesn't affect other keys
+-- det isolation: del operations on a different key don't interfere with observable behavior
 axiom del_isolation :
   ∀ (k1 k2 : α) (db : DB),
     k1 ≠ k2 →
@@ -195,14 +195,6 @@ theorem set_overwrite :
   (⇐ (SET k v1 *> SET k v2 *> GET k) on db) = some v2 := by
   rw [monadic_composition]
   exact set_get_consistency k v2 (≡ SET k v1 on db)
-
--- operations on different keys don't interfere
-theorem set_isolation :
-  k1 ≠ k2 →
-  (⇐ GET k2 on db) = (⇐ (SET k1 v *> GET k2) on db) := by
-  intro h_different
-  rw [monadic_composition]
-  exact (key_isolation k1 k2 v db h_different).1
 
 -- if a key doesn't exist, set followed by del doesn't alter the state
 theorem set_del_nonexistent_preserves_state :
