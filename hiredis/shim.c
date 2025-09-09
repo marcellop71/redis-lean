@@ -6,6 +6,7 @@
 #include <hiredis/hiredis.h>
 #include <lean/lean.h>
 
+#include "csu_stubs.c"
 #include "errors.c"
 #include "connect.c"
 #include "ping.c"
@@ -35,3 +36,9 @@
 #include "zadd.c"
 #include "zcard.c"
 #include "zrange.c"
+#include "xadd.c"
+#include "xread.c"
+#include "xrange.c"
+#include "xlen.c"
+#include "xdel.c"
+#include "xtrim.c"

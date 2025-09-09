@@ -23,7 +23,7 @@ target hiredis_shim_o pkg : FilePath := do
   let srcFile := pkg.dir / "hiredis" / "shim.c"
   let oFile   := pkg.buildDir / "hiredis" / "shim.o"
   IO.FS.createDirAll oFile.parent.get!
-  let flags := #["-fPIC", "-O2", "-I", (← getLeanIncludeDir).toString]
+  let flags := #["-fPIC", "-O2", "-I", (← getLeanIncludeDir).toString, "-fno-stack-protector"]
   compileO oFile srcFile flags
   return .pure oFile
 

@@ -121,6 +121,25 @@ opaque zcard (ctx : @& Ctx) (key : @& ByteArray) : EIO RedisError UInt64
 @[extern "l_hiredis_zrange"]
 opaque zrange (ctx : @& Ctx) (key : @& ByteArray) (start : @& Int64) (stop : @& Int64) : EIO RedisError (List ByteArray)
 
+-- Redis Streams commands
+@[extern "l_hiredis_xadd"]
+opaque xadd (ctx : @& Ctx) (key : @& ByteArray) (stream_id : @& ByteArray) (field_values : @& List (ByteArray × ByteArray)) : EIO RedisError ByteArray
+
+@[extern "l_hiredis_xread"]
+opaque xread (ctx : @& Ctx) (streams : @& List (ByteArray × ByteArray)) (count_opt : @& Option UInt64) (block_opt : @& Option UInt64) : EIO RedisError ByteArray
+
+@[extern "l_hiredis_xrange"]
+opaque xrange (ctx : @& Ctx) (key : @& ByteArray) (start_id : @& ByteArray) (end_id : @& ByteArray) (count_opt : @& Option UInt64) : EIO RedisError ByteArray
+
+@[extern "l_hiredis_xlen"]
+opaque xlen (ctx : @& Ctx) (key : @& ByteArray) : EIO RedisError UInt64
+
+@[extern "l_hiredis_xdel"]
+opaque xdel (ctx : @& Ctx) (key : @& ByteArray) (entry_ids : @& List ByteArray) : EIO RedisError UInt64
+
+@[extern "l_hiredis_xtrim"]
+opaque xtrim (ctx : @& Ctx) (key : @& ByteArray) (strategy : @& ByteArray) (max_len : @& UInt64) : EIO RedisError UInt64
+
 end hiredis
 
 /-- ByteArray-based helpers (direct FFI interface) -/
@@ -190,6 +209,22 @@ def zadd (ctx : Ctx) (key : ByteArray) (score : Float) (member : ByteArray) : EI
 def zcard (ctx : Ctx) (key : ByteArray) : EIO RedisError UInt64 := hiredis.zcard ctx key
 
 def zrange (ctx : Ctx) (key : ByteArray) (start stop : Int64) : EIO RedisError (List ByteArray) := hiredis.zrange ctx key start stop
+
+-- Redis Streams operations
+def xadd (ctx : Ctx) (key stream_id : ByteArray) (field_values : List (ByteArray × ByteArray)) : EIO RedisError ByteArray :=
+  hiredis.xadd ctx key stream_id field_values
+
+def xread (ctx : Ctx) (streams : List (ByteArray × ByteArray)) (count_opt : Option UInt64 := none) (block_opt : Option UInt64 := none) : EIO RedisError ByteArray :=
+  hiredis.xread ctx streams count_opt block_opt
+
+def xrange (ctx : Ctx) (key start_id end_id : ByteArray) (count_opt : Option UInt64 := none) : EIO RedisError ByteArray :=
+  hiredis.xrange ctx key start_id end_id count_opt
+
+def xlen (ctx : Ctx) (key : ByteArray) : EIO RedisError UInt64 := hiredis.xlen ctx key
+
+def xdel (ctx : Ctx) (key : ByteArray) (entry_ids : List ByteArray) : EIO RedisError UInt64 := hiredis.xdel ctx key entry_ids
+
+def xtrim (ctx : Ctx) (key strategy : ByteArray) (max_len : UInt64) : EIO RedisError UInt64 := hiredis.xtrim ctx key strategy max_len
 
 -- convenience: connect + auto‑free
 def withRedis (host := "127.0.0.1") (port : UInt32 := 6379) (k : Ctx → EIO RedisError α) : EIO RedisError α := do

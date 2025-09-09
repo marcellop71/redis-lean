@@ -11,6 +11,10 @@ instance : Codec ByteArray where
   enc := id
   dec := .ok
 
+instance : Codec Unit where
+  enc _ := String.toUTF8 ""
+  dec _ := .ok ()
+
 instance : Codec String where
   enc := String.toUTF8
   dec bytes :=

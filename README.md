@@ -14,6 +14,8 @@ This repo hosts:
 
 📝 some **[Remarks](RedisLean/remarks.md)** about Redis
 
+🌊 **[Redis Streams](docs/STREAMS.md)** support with XADD, XREAD, XRANGE, XLEN, XDEL, XTRIM commands
+
 Please remark:
 
 - client **[wrapping](hiredis/README.md)** just *hiredis* synchronous APIs

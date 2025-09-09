@@ -52,6 +52,12 @@ inductive RedisCmd where
   | SADD    : RedisCmd
   | PUBLISH : RedisCmd
   | PING    : RedisCmd
+  | XADD    : RedisCmd
+  | XREAD   : RedisCmd
+  | XRANGE  : RedisCmd
+  | XLEN    : RedisCmd
+  | XDEL    : RedisCmd
+  | XTRIM   : RedisCmd
   deriving Repr, BEq
 
 /-- Convert RedisCmd to string for metrics and logging -/
@@ -71,6 +77,12 @@ def RedisCmd.toString : RedisCmd → String
   | .SADD     => "SADD"
   | .PUBLISH  => "PUBLISH"
   | .PING     => "PING"
+  | .XADD     => "XADD"
+  | .XREAD    => "XREAD"
+  | .XRANGE   => "XRANGE"
+  | .XLEN     => "XLEN"
+  | .XDEL     => "XDEL"
+  | .XTRIM    => "XTRIM"
 
 instance : ToString RedisCmd := ⟨RedisCmd.toString⟩
 
