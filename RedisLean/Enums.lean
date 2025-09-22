@@ -58,6 +58,16 @@ inductive RedisCmd where
   | XLEN    : RedisCmd
   | XDEL    : RedisCmd
   | XTRIM   : RedisCmd
+  | HSET    : RedisCmd
+  | HGET    : RedisCmd
+  | HGETALL : RedisCmd
+  | HDEL    : RedisCmd
+  | HEXISTS : RedisCmd
+  | HINCRBY : RedisCmd
+  | HKEYS   : RedisCmd
+  | ZADD    : RedisCmd
+  | ZCARD   : RedisCmd
+  | ZRANGE  : RedisCmd
   deriving Repr, BEq
 
 /-- Convert RedisCmd to string for metrics and logging -/
@@ -83,6 +93,16 @@ def RedisCmd.toString : RedisCmd → String
   | .XLEN     => "XLEN"
   | .XDEL     => "XDEL"
   | .XTRIM    => "XTRIM"
+  | .HSET     => "HSET"
+  | .HGET     => "HGET"
+  | .HGETALL  => "HGETALL"
+  | .HDEL     => "HDEL"
+  | .HEXISTS  => "HEXISTS"
+  | .HINCRBY  => "HINCRBY"
+  | .HKEYS    => "HKEYS"
+  | .ZADD     => "ZADD"
+  | .ZCARD    => "ZCARD"
+  | .ZRANGE   => "ZRANGE"
 
 instance : ToString RedisCmd := ⟨RedisCmd.toString⟩
 

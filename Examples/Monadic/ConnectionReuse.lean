@@ -75,7 +75,7 @@ def runWithConnectionReuse : IO Unit := do
 
   -- Initialize connection
   Log.info "🚀 Initializing Redis connection..."
-  let connectionResult ← initWithConnect redisConfig
+  let connectionResult ← init redisConfig
 
   match connectionResult with
   | Except.error e =>
@@ -130,7 +130,7 @@ def runWithErrorHandling : IO Unit := do
   let config : Config := { host := "127.0.0.1", port := 6379 }
   let redisConfig : RedisConfig := { config := config, enableMetrics := true }
 
-  let connectionResult ← initWithConnect redisConfig
+  let connectionResult ← init redisConfig
 
   match connectionResult with
   | Except.error e =>

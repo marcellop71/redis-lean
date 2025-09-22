@@ -8,7 +8,7 @@ namespace RedisLean
 
 -- Configuration for Redis connections
 structure RedisConfig where
-  config : Config
+  config : Config := Config.default
   enableMetrics : Bool := true
   deriving Repr
 
@@ -76,12 +76,15 @@ def connect (redisConfig : RedisConfig) : ExceptT RedisError IO RedisState := do
   }
   return redisState
 
-def initWithConnect (redisConfig : RedisConfig) : IO (Except RedisError RedisStateRef) := do
-  let result ← ExceptT.run do
-    let redisState ← connect redisConfig
-    let stateRef ← ST.mkRef redisState
-    pure stateRef
-  pure result
+def init (redisConfig : RedisConfig) : IO (Except RedisError RedisStateRef) := do
+  try
+    let result ← ExceptT.run do
+      let redisState ← connect redisConfig
+      let stateRef ← ST.mkRef redisState
+      pure stateRef
+    pure result
+  catch e =>
+    pure <| Except.error <| RedisError.otherError s!"Failed to initialize Redis connection: {e}"
 
 def runRedis {α : Type}
     (redisConfig : RedisConfig)

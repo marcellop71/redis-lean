@@ -40,6 +40,21 @@ class Ops (α: Type) [Codec α] (m : Type → Type) where
   scard : α → m Nat
   sadd {β : Type} [Codec β] : α → β → m Nat
 
+  -- operations on hashes
+  hset {β γ : Type} [Codec β] [Codec γ] : α → β → γ → m Nat
+  hget {β : Type} [Codec β] : α → β → m ByteArray
+  hgetAs (β γ : Type) [Codec β] [Codec γ] : α → β → m γ
+  hgetall : α → m (List ByteArray)
+  hdel {β : Type} [Codec β] : α → β → m Nat
+  hexists {β : Type} [Codec β] : α → β → m Bool
+  hincrby {β : Type} [Codec β] : α → β → Int → m Nat
+  hkeys : α → m (List ByteArray)
+
+  -- operations on sorted sets
+  zadd {β : Type} [Codec β] : α → Float → β → m Nat
+  zcard : α → m Nat
+  zrange : α → Int → Int → m (List ByteArray)
+
   -- Pub/Sub operations
   publish {β: Type} [Codec β] : String → β → m Nat
 
@@ -97,6 +112,35 @@ instance [Codec α] : Ops α RedisM where
   sadd := fun k member => do
     let result ← liftRedisEIO RedisCmd.SADD (fun ctx => FFI.hiredis.sadd ctx (Codec.enc k) (Codec.enc member))
     return result.toNat
+
+  -- Hash operations implementation
+  hset := fun {β γ} [Codec β] [Codec γ] k field value => do
+    let result ← liftRedisEIO RedisCmd.HSET (fun ctx => FFI.hiredis.hset ctx (Codec.enc k) (Codec.enc field) (Codec.enc value))
+    return result.toNat
+  hget := fun {β} [Codec β] k field => liftRedisEIO RedisCmd.HGET (fun ctx => FFI.hiredis.hget ctx (Codec.enc k) (Codec.enc field))
+  hgetAs := fun β γ [Codec β] [Codec γ] k field => do
+    let tmp ← liftRedisEIO RedisCmd.HGET (fun ctx => FFI.hiredis.hget ctx (Codec.enc k) (Codec.enc field))
+    match Codec.dec tmp with
+    | .ok value => return value
+    | .error msg => throw (RedisError.otherError s!"Codec decoding failed: {msg}")
+  hgetall := fun k => liftRedisEIO RedisCmd.HGETALL (fun ctx => FFI.hiredis.hgetall ctx (Codec.enc k))
+  hdel := fun {β} [Codec β] k field => do
+    let result ← liftRedisEIO RedisCmd.HDEL (fun ctx => FFI.hiredis.hdel ctx (Codec.enc k) (Codec.enc field))
+    return result.toNat
+  hexists := fun {β} [Codec β] k field => liftRedisEIO RedisCmd.HEXISTS (fun ctx => FFI.hiredis.hexists ctx (Codec.enc k) (Codec.enc field))
+  hincrby := fun {β} [Codec β] k field increment => do
+    let result ← liftRedisEIO RedisCmd.HINCRBY (fun ctx => FFI.hiredis.hincrby ctx (Codec.enc k) (Codec.enc field) (Int64.ofInt increment))
+    return result.toNat
+  hkeys := fun k => liftRedisEIO RedisCmd.HKEYS (fun ctx => FFI.hiredis.hkeys ctx (Codec.enc k))
+
+  -- Sorted set operations implementation
+  zadd := fun {β} [Codec β] k score member => do
+    let result ← liftRedisEIO RedisCmd.ZADD (fun ctx => FFI.hiredis.zadd ctx (Codec.enc k) score (Codec.enc member))
+    return result.toNat
+  zcard := fun k => do
+    let result ← liftRedisEIO RedisCmd.ZCARD (fun ctx => FFI.hiredis.zcard ctx (Codec.enc k))
+    return result.toNat
+  zrange := fun k start stop => liftRedisEIO RedisCmd.ZRANGE (fun ctx => FFI.hiredis.zrange ctx (Codec.enc k) (Int64.ofInt start) (Int64.ofInt stop))
 
   publish := fun {β} [Codec β] channel message => do
     let result ← liftRedisEIO RedisCmd.PUBLISH (fun ctx => FFI.hiredis.publish ctx channel (Codec.enc message))
@@ -184,6 +228,21 @@ def scard (k : α) : m Nat := Ops.scard k
 
 -- Add a member to a set
 def sadd (k : α) (member : α) : m Nat := Ops.sadd k member
+
+-- Hash operations
+def hset {γ : Type} [Codec γ] (k : α) (field : α) (value : γ) : m Nat := Ops.hset k field value
+def hget (k : α) (field : α) : m ByteArray := Ops.hget k field
+def hgetAs (γ : Type) [Codec γ] (k : α) (field : α) : m γ := Ops.hgetAs α γ k field
+def hgetall (k : α) : m (List ByteArray) := Ops.hgetall k
+def hdel (k : α) (field : α) : m Nat := Ops.hdel k field
+def hexists (k : α) (field : α) : m Bool := Ops.hexists k field
+def hincrby (k : α) (field : α) (increment : Int) : m Nat := Ops.hincrby k field increment
+def hkeys (k : α) : m (List ByteArray) := Ops.hkeys k
+
+-- Sorted set operations
+def zadd (k : α) (score : Float) (member : α) : m Nat := Ops.zadd k score member
+def zcard (k : α) : m Nat := Ops.zcard k
+def zrange (k : α) (start stop : Int) : m (List ByteArray) := Ops.zrange k start stop
 
 -- Publish a message to a channel
 def publish [inst : Ops α m] [Codec β] (channel : String) (message : β) : m Nat :=
