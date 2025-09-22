@@ -3,12 +3,13 @@
 
 import RedisLean.Ops
 import RedisLean.Log
+import RedisLean.Monad
 
 open RedisLean
 
 namespace MonadicGetExample
 
-def ex0 : Redis Unit := do
+def ex0 : RedisM Unit := do
   Log.info "example: basic get operations"
 
   let key1 := "get:name"
@@ -55,7 +56,7 @@ def ex0 : Redis Unit := do
   catch _ =>
     Log.info "✓ expected error (key not found)"
 
-def ex1 : Redis Unit := do
+def ex1 : RedisM Unit := do
   Log.info "example: typed get operations"
 
   let stringKey := "typed:string"
@@ -95,12 +96,14 @@ def ex1 : Redis Unit := do
   catch e =>
     Log.info s!"✓ expected type error: {e}"
 
-def runAllExamples : Redis Unit := do
+def runAllExamples : RedisM Unit := do
   ex0
   ex1
 
 def main : IO Unit := do
-  let result ← runRedis {} runAllExamples
+  let config : Config := {}  -- Using default config
+  let redisConfig : RedisConfig := { config := config, enableMetrics := false }
+  let result ← runRedisNoState redisConfig runAllExamples
   match result with
   | Except.ok _ => Log.info "All examples completed successfully!"
   | Except.error e => Log.info s!"Error running examples: {e}"

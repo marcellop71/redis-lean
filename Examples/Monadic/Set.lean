@@ -1,11 +1,12 @@
 import RedisLean.Ops
 import RedisLean.Log
+import RedisLean.Monad
 
 open RedisLean
 
 namespace MonadicSetExample
 
-def ex0 : Redis Unit := do
+def ex0 : RedisM Unit := do
   Log.info "example: setting a key-value pair"
 
   let key1 := "key1"
@@ -32,7 +33,7 @@ def ex0 : Redis Unit := do
   catch e =>
     Log.error s!"✗ error {e}"
 
-def ex1 : Redis Unit := do
+def ex1 : RedisM Unit := do
   Log.info "example: typed set/get operations with different data types"
 
   -- Working with String type
@@ -91,12 +92,14 @@ def ex1 : Redis Unit := do
   catch e =>
     Log.info s!"✓ expected error with type mismatch: {e}"
 
-def runAllExamples : Redis Unit := do
+def runAllExamples : RedisM Unit := do
   ex0
   ex1
 
 def main : IO Unit := do
-  let result ← runRedis {} runAllExamples
+  let config : Config := {}  -- Using default config
+  let redisConfig : RedisConfig := { config := config, enableMetrics := false }
+  let result ← runRedisNoState redisConfig runAllExamples
   match result with
   | Except.ok _ => Log.info "All examples completed successfully!"
   | Except.error e => Log.info s!"Error running examples: {e}"

@@ -52,8 +52,8 @@ class Ops (α: Type) [Codec α] (m : Type → Type) where
   xtrim : α → String → Nat → m Nat  -- other operations
   ping : α → m Bool
 
--- implementation for the Redis monad using FFI.hiredis
-instance [Codec α] : Ops α Redis where
+-- implementation for the RedisM monad using FFI.hiredis
+instance [Codec α] : Ops α RedisM where
   set := fun k v => liftRedisEIO RedisCmd.SET (fun ctx => FFI.hiredis.set ctx (Codec.enc k) (Codec.enc v) FFI.SetExistsOption.none.toUInt8)
   setnx := fun k v => liftRedisEIO RedisCmd.SET (fun ctx => FFI.hiredis.set ctx (Codec.enc k) (Codec.enc v) FFI.SetExistsOption.nx.toUInt8)
   setxx := fun k v => liftRedisEIO RedisCmd.SET (fun ctx => FFI.hiredis.set ctx (Codec.enc k) (Codec.enc v) FFI.SetExistsOption.xx.toUInt8)
@@ -212,29 +212,29 @@ def xtrim (k : α) (strategy : String) (max_len : Nat) : m Nat := Ops.xtrim k st
 
 /-- Redis pipeline for batching commands -/
 structure Pipeline where
-  commands : List (Redis Unit)
+  commands : List (RedisM Unit)
 
 /-- Create an empty pipeline -/
 def emptyPipeline : Pipeline := ⟨[]⟩
 
 /-- Add a command to a pipeline -/
-def Pipeline.add (pipeline : Pipeline) (cmd : Redis Unit) : Pipeline :=
+def Pipeline.add (pipeline : Pipeline) (cmd : RedisM Unit) : Pipeline :=
   ⟨cmd :: pipeline.commands⟩
 
 /-- Execute a pipeline of commands -/
-def executePipeline (pipeline : Pipeline) : Redis Unit := do
+def executePipeline (pipeline : Pipeline) : RedisM Unit := do
   for cmd in pipeline.commands.reverse do
     cmd
 
 -- Utility functions
 
 /-- Multi-get operation -/
-def mget [Codec α] [Codec β] (ks : List α) : Redis (List β) := do
+def mget [Codec α] [Codec β] (ks : List α) : RedisM (List β) := do
   let results ← ks.mapM (getAs β)
   return results
 
 /-- Multi-set operation -/
-def mset [Codec α] [Codec β] (pairs : List (α × β)) : Redis Unit := do
+def mset [Codec α] [Codec β] (pairs : List (α × β)) : RedisM Unit := do
   pairs.forM (fun (k, v) => set k v)
 
 -- DSL-style combinators
@@ -246,12 +246,12 @@ infixl:55 " >>= " => bind
 infixl:50 " >> " => fun m n => m >>= fun _ => n
 
 /-- When combinator for conditional execution -/
-def whenM (condition : Redis Bool) (action : Redis Unit) : Redis Unit := do
+def whenM (condition : RedisM Bool) (action : RedisM Unit) : RedisM Unit := do
   let cond ← condition
   if cond then action else return ()
 
 /-- Unless combinator for conditional execution -/
-def unlessM (condition : Redis Bool) (action : Redis Unit) : Redis Unit := do
+def unlessM (condition : RedisM Bool) (action : RedisM Unit) : RedisM Unit := do
   let cond ← condition
   if not cond then action else return ()
 

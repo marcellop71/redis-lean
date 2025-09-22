@@ -7,9 +7,11 @@ import Examples.Monadic.Del
 import Examples.Monadic.Get
 import Examples.Monadic.SAdd
 import Examples.Monadic.Set
+import Examples.Monadic.ConnectionReuse
 
 import RedisLean.Ops
 import RedisLean.Log
+import RedisLean.Monad
 import Cli
 
 open RedisLean
@@ -43,34 +45,41 @@ def runFFIExamples : IO Unit := do
 
 def runMonadicExamples : IO Unit := do
   Log.info "Higher-level monadic Redis client"
+  let config : Config := {}  -- Using default config
+  let redisConfig : RedisConfig := { config := config, enableMetrics := false }
   try
     -- Run Set examples
     Log.info "📝 Running Monadic Set Examples..."
-    let setResult ← runRedis {} MonadicSetExample.runAllExamples
+    let setResult ← runRedisNoState redisConfig MonadicSetExample.runAllExamples
     match setResult with
     | Except.ok _ => Log.info "✅ Set examples completed successfully"
     | Except.error e => Log.error s!"❌ Set examples failed: {e}"
 
     -- Run Get examples
     Log.info "📖 Running Monadic Get Examples..."
-    let getResult ← runRedis {} MonadicGetExample.runAllExamples
+    let getResult ← runRedisNoState redisConfig MonadicGetExample.runAllExamples
     match getResult with
     | Except.ok _ => Log.info "✅ Get examples completed successfully"
     | Except.error e => Log.error s!"❌ Get examples failed: {e}"
 
     -- Run Del examples
     Log.info "🗑️  Running Monadic Del Examples..."
-    let delResult ← runRedis {} MonadicDelExample.runAllExamples
+    let delResult ← runRedisNoState redisConfig MonadicDelExample.runAllExamples
     match delResult with
     | Except.ok _ => Log.info "✅ Del examples completed successfully"
     | Except.error e => Log.error s!"❌ Del examples failed: {e}"
 
     -- Run SAdd examples
     Log.info "📦 Running Monadic SAdd Examples..."
-    let saddResult ← runRedis {} MonadicSAddExample.runAllExamples
+    let saddResult ← runRedisNoState redisConfig MonadicSAddExample.runAllExamples
     match saddResult with
     | Except.ok _ => Log.info "✅ SAdd examples completed successfully"
     | Except.error e => Log.error s!"❌ SAdd examples failed: {e}"
+
+    -- Run ConnectionReuse examples
+    Log.info "🔗 Running Connection Reuse Examples..."
+    ConnectionReuseExample.runWithConnectionReuse
+    Log.info "✅ Connection Reuse examples completed successfully"
 
     Log.info "✅ All Monadic Examples Completed!"
   catch e =>

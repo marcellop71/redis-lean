@@ -1,11 +1,12 @@
 import RedisLean.Ops
 import RedisLean.Log
+import RedisLean.Monad
 
 open RedisLean
 
 namespace MonadicDelExample
 
-def ex0 : Redis Unit := do
+def ex0 : RedisM Unit := do
   Log.info "example: basic delete operations"
 
   let key1 := "del:single"
@@ -25,7 +26,7 @@ def ex0 : Redis Unit := do
   catch e =>
     Log.error s!"✗ error deleting key: {e}"
 
-def ex1 : Redis Unit := do
+def ex1 : RedisM Unit := do
   Log.info "example: multiple key deletion"
 
   let keys := ["del:multi:1", "del:multi:2", "del:multi:3"]
@@ -46,7 +47,7 @@ def ex1 : Redis Unit := do
   catch e =>
     Log.error s!"✗ error deleting keys: {e}"
 
-def ex2 : Redis Unit := do
+def ex2 : RedisM Unit := do
   Log.info "example: deleting non-existent keys"
 
   let nonExistentKeys := ["del:missing:1", "del:missing:2"]
@@ -58,7 +59,7 @@ def ex2 : Redis Unit := do
   catch e =>
     Log.error s!"✗ error deleting non-existent keys: {e}"
 
-def ex3 : Redis Unit := do
+def ex3 : RedisM Unit := do
   Log.info "example: mixed existent and non-existent keys"
 
   let existingKey := "del:mixed:real"
@@ -79,14 +80,16 @@ def ex3 : Redis Unit := do
   catch e =>
     Log.error s!"✗ error deleting mixed keys: {e}"
 
-def runAllExamples : Redis Unit := do
+def runAllExamples : RedisM Unit := do
   ex0
   ex1
   ex2
   ex3
 
 def main : IO Unit := do
-  let result ← runRedis {} runAllExamples
+  let config : Config := {}  -- Using default config
+  let redisConfig : RedisConfig := { config := config, enableMetrics := false }
+  let result ← runRedisNoState redisConfig runAllExamples
   match result with
   | Except.ok _ => Log.info "All examples completed successfully!"
   | Except.error e => Log.info s!"Error running examples: {e}"

@@ -3,12 +3,13 @@
 
 import RedisLean.Ops
 import RedisLean.Log
+import RedisLean.Monad
 
 open RedisLean
 
 namespace MonadicSAddExample
 
-def ex0 : Redis Unit := do
+def ex0 : RedisM Unit := do
   Log.info "example: basic set operations"
 
   let setKey := "fruits"
@@ -41,7 +42,7 @@ def ex0 : Redis Unit := do
   catch e =>
     Log.error s!"✗ error: {e}"
 
-def ex1 : Redis Unit := do
+def ex1 : RedisM Unit := do
   Log.info "example: membership testing"
 
   let setKey := "colors"
@@ -76,7 +77,7 @@ def ex1 : Redis Unit := do
   catch e =>
     Log.error s!"✗ error: {e}"
 
-def ex2 : Redis Unit := do
+def ex2 : RedisM Unit := do
   Log.info "example: multiple sets"
 
   let teamA := "team:a"
@@ -111,13 +112,15 @@ def ex2 : Redis Unit := do
   catch e =>
     Log.error s!"✗ membership error: {e}"
 
-def runAllExamples : Redis Unit := do
+def runAllExamples : RedisM Unit := do
   ex0
   ex1
   ex2
 
 def main : IO Unit := do
-  let result ← runRedis {} runAllExamples
+  let config : Config := {}  -- Using default config
+  let redisConfig : RedisConfig := { config := config, enableMetrics := false }
+  let result ← runRedisNoState redisConfig runAllExamples
   match result with
   | Except.ok _ => Log.info "All examples completed successfully!"
   | Except.error e => Log.info s!"Error running examples: {e}"
