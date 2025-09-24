@@ -3,7 +3,7 @@ import Init.System.FilePath
 import Std.Time
 import RedisLean.Error
 
-namespace RedisLean
+namespace Redis
 
 namespace Log
 
@@ -283,4 +283,4 @@ end EIO
 
 end Log
 
-end RedisLean
+end Redis

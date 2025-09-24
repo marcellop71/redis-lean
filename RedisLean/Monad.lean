@@ -4,123 +4,123 @@ import RedisLean.Config
 import RedisLean.FFI
 import RedisLean.Enums
 
-namespace RedisLean
+namespace Redis
 
 -- Configuration for Redis connections
-structure RedisConfig where
+structure Read where
   config : Config := Config.default
   enableMetrics : Bool := true
   deriving Repr
 
 -- State maintained during Redis operations
-structure RedisState where
+structure State where
   ctx : FFI.Ctx
   isConnected : Bool := false
   metrics : Metrics
   recordLatency : String → Nat → IO Unit := fun _ _ => pure ()
 
-abbrev RedisM := ReaderT RedisConfig $ StateRefT RedisState $ ExceptT RedisError IO
-abbrev RedisStateRef := ST.Ref IO.RealWorld RedisState
+abbrev RedisM := ReaderT Read $ StateRefT State $ ExceptT RedisError IO
+abbrev StateRef := ST.Ref IO.RealWorld State
 
 def getConfig : RedisM Config := do
-  let redisConfig ← read
-  return redisConfig.config
+  let r ← read
+  return r.config
 
 def getMetrics : RedisM Metrics := do
-  let redisState ← get
-  return redisState.metrics
+  let s ← get
+  return s.metrics
 
-def getState : RedisM RedisState := get
+def getState : RedisM State := get
 
 def isConnected : RedisM Bool := do
-  let redisState ← get
-  return redisState.isConnected
+  let s ← get
+  return s.isConnected
 
 def getContext : RedisM FFI.Ctx := do
-  let redisState ← get
-  return redisState.ctx
+  let s ← get
+  return s.ctx
 
 -- lift an EIO operation that uses the Redis context with latency recording
 def liftRedisEIO {α}
   (cmd : RedisCmd) (f : FFI.Ctx → EIO RedisError α) : RedisM α := do
-  let redisConfig ← read
-  let redisState ← get
-  if redisConfig.enableMetrics then
+  let r ← read
+  let s ← get
+  if r.enableMetrics then
     let start ← IO.monoNanosNow
     try
-      let result ← ExceptT.mk (EIO.toIO' (f redisState.ctx))
+      let result ← ExceptT.mk (EIO.toIO' (f s.ctx))
       let stop ← IO.monoNanosNow
       let micros := (stop - start) / 1000
-      redisState.recordLatency (toString cmd) micros
+      s.recordLatency (toString cmd) micros
       return result
     catch e =>
       let stop ← IO.monoNanosNow
       let micros := (stop - start) / 1000
-      redisState.recordLatency (toString cmd) micros
-      Metrics.recordError redisState.metrics (toString e)
+      s.recordLatency (toString cmd) micros
+      Metrics.recordError s.metrics (toString e)
       throw e
   else
-    ExceptT.mk (EIO.toIO' (f redisState.ctx))
+    ExceptT.mk (EIO.toIO' (f s.ctx))
 
-def connect (redisConfig : RedisConfig) : ExceptT RedisError IO RedisState := do
-  let ctxResult ← ExceptT.mk (EIO.toIO' (FFI.hiredis.connect redisConfig.config.host (UInt32.ofNat redisConfig.config.port)))
+def connect (r : Read) : ExceptT RedisError IO State := do
+  let ctxResult ← ExceptT.mk (EIO.toIO' (FFI.hiredis.connect r.config.host (UInt32.ofNat r.config.port)))
   let metrics ← Metrics.make
-  if redisConfig.enableMetrics then
+  if r.enableMetrics then
     Metrics.recordEvent metrics "connection_established"
-  let redisState : RedisState := {
+  let s : State := {
     ctx := ctxResult,
     isConnected := true,
     metrics,
     recordLatency := fun cmd microseconds =>
-      if redisConfig.enableMetrics then Metrics.recordLatency metrics cmd microseconds else pure ()
+      if r.enableMetrics then Metrics.recordLatency metrics cmd microseconds else pure ()
   }
-  return redisState
+  return s
 
-def init (redisConfig : RedisConfig) : IO (Except RedisError RedisStateRef) := do
+def init (r : Read) : IO (Except RedisError StateRef) := do
   try
     let result ← ExceptT.run do
-      let redisState ← connect redisConfig
-      let stateRef ← ST.mkRef redisState
-      pure stateRef
+      let s ← connect r
+      let sRef ← ST.mkRef s
+      pure sRef
     pure result
   catch e =>
     pure <| Except.error <| RedisError.otherError s!"Failed to initialize Redis connection: {e}"
 
 def runRedis {α : Type}
-    (redisConfig : RedisConfig)
-    (stateRef : RedisStateRef)
+    (r : Read)
+    (sRef : StateRef)
     (comp : RedisM α) : IO (Except RedisError α) := do
-  ExceptT.run $ (comp.run redisConfig) stateRef
+  ExceptT.run $ (comp.run r) sRef
 
 def runRedisFromState
-    (redisConfig : RedisConfig)
-    (redisState : RedisState)
+    (r : Read)
+    (s : State)
     (comp : RedisM α) : IO (Except RedisError α) := do
-  let stateRef ← ST.mkRef redisState
-  runRedis redisConfig stateRef comp
+  let sRef ← ST.mkRef s
+  runRedis r sRef comp
 
 def runRedisFromStateReturnsMetrics
-    (redisConfig : RedisConfig)
-    (redisState : RedisState)
+    (r : Read)
+    (s : State)
     (comp : RedisM α) : IO (Except RedisError α × Metrics) := do
-  let stateRef ← ST.mkRef redisState
-  let result ← (comp.run redisConfig) stateRef
+  let sRef ← ST.mkRef s
+  let result ← (comp.run r) sRef
   match result with
   | Except.ok value =>
-    let finalState ← stateRef.get
+    let finalState ← sRef.get
     return (Except.ok value, finalState.metrics)
-  | Except.error e => return (Except.error e, redisState.metrics)
+  | Except.error e => return (Except.error e, s.metrics)
 
 def runRedisNoState
-    (redisConfig : RedisConfig)
+    (r : Read)
     (comp : RedisM α) : IO (Except RedisError α) := do
-  let result ← connect redisConfig |>.run
+  let result ← connect r |>.run
   match result with
   | Except.error e => return Except.error e
-  | Except.ok redisState =>
+  | Except.ok s =>
     try
-      runRedisFromState redisConfig redisState comp
+      runRedisFromState r s comp
     finally
-      discard $ EIO.toIO (fun _ => IO.userError "Failed to free Redis context") (FFI.hiredis.free redisState.ctx)
+      discard $ EIO.toIO (fun _ => IO.userError "Failed to free Redis context") (FFI.hiredis.free s.ctx)
 
-end RedisLean
+end Redis

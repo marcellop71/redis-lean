@@ -5,12 +5,12 @@ import RedisLean.Ops
 import RedisLean.Log
 import RedisLean.Monad
 
-open RedisLean
-
 namespace ConnectionReuseExample
 
+open Redis
+
 -- Helper function to cleanup connection
-def cleanup (stateRef : RedisStateRef) : IO Unit := do
+def cleanup (stateRef : StateRef) : IO Unit := do
   let state ← stateRef.get
   discard $ EIO.toIO (fun _ => IO.userError "Failed to free Redis context") (FFI.hiredis.free state.ctx)
 
@@ -71,11 +71,11 @@ def runWithConnectionReuse : IO Unit := do
 
   -- Create configuration with metrics enabled
   let config : Config := { host := "127.0.0.1", port := 6379 }
-  let redisConfig : RedisConfig := { config := config, enableMetrics := true }
+  let r : Read := { config := config, enableMetrics := true }
 
   -- Initialize connection
   Log.info "🚀 Initializing Redis connection..."
-  let connectionResult ← init redisConfig
+  let connectionResult ← init r
 
   match connectionResult with
   | Except.error e =>
@@ -86,28 +86,28 @@ def runWithConnectionReuse : IO Unit := do
 
       -- Operation 1: Set data
       Log.info "\n--- Operation 1: Setting Data ---"
-      let result1 ← runRedis redisConfig stateRef setOperations
+      let result1 ← runRedis r stateRef setOperations
       match result1 with
       | Except.ok _ => Log.info "✅ Set operations successful"
       | Except.error e => Log.error s!"❌ Set operations failed: {e}"
 
       -- Operation 2: Get data (reusing same connection)
       Log.info "\n--- Operation 2: Getting Data ---"
-      let result2 ← runRedis redisConfig stateRef getOperations
+      let result2 ← runRedis r stateRef getOperations
       match result2 with
       | Except.ok _ => Log.info "✅ Get operations successful"
       | Except.error e => Log.error s!"❌ Get operations failed: {e}"
 
       -- Operation 3: Check existence and metrics (reusing same connection)
       Log.info "\n--- Operation 3: Checking Existence & Metrics ---"
-      let result3 ← runRedis redisConfig stateRef existsAndMetrics
+      let result3 ← runRedis r stateRef existsAndMetrics
       match result3 with
       | Except.ok _ => Log.info "✅ Exists and metrics operations successful"
       | Except.error e => Log.error s!"❌ Exists and metrics operations failed: {e}"
 
       -- Operation 4: Cleanup (reusing same connection)
       Log.info "\n--- Operation 4: Cleanup ---"
-      let result4 ← runRedis redisConfig stateRef cleanupOperations
+      let result4 ← runRedis r stateRef cleanupOperations
       match result4 with
       | Except.ok _ => Log.info "✅ Cleanup operations successful"
       | Except.error e => Log.error s!"❌ Cleanup operations failed: {e}"
@@ -128,9 +128,9 @@ def runWithErrorHandling : IO Unit := do
   Log.info "\n🛡️ Connection Reuse with Error Handling Example"
 
   let config : Config := { host := "127.0.0.1", port := 6379 }
-  let redisConfig : RedisConfig := { config := config, enableMetrics := true }
+  let r : Read := { config := config, enableMetrics := true }
 
-  let connectionResult ← init redisConfig
+  let connectionResult ← init r
 
   match connectionResult with
   | Except.error e =>
@@ -146,7 +146,7 @@ def runWithErrorHandling : IO Unit := do
 
       for (opName, operation) in operations do
         Log.info s!"🔄 Running {opName}..."
-        let result ← runRedis redisConfig stateRef operation
+        let result ← runRedis r stateRef operation
         match result with
         | Except.ok _ => Log.info s!"✅ {opName} completed successfully"
         | Except.error e =>

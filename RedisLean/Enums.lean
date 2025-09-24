@@ -1,4 +1,4 @@
-namespace RedisLean
+namespace Redis
 
 inductive RedisValue where
   | none      : RedisValue  -- Key doesn't exist
@@ -116,4 +116,4 @@ def RedisCmd.toString : RedisCmd → String
 
 instance : ToString RedisCmd := ⟨RedisCmd.toString⟩
 
-end RedisLean
+end Redis

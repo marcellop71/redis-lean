@@ -1,7 +1,7 @@
 import Std.Data.HashMap
 import RedisLean.Log
 
-namespace RedisLean
+namespace Redis
 
 structure LatencyStats where
   count : Nat
@@ -106,4 +106,4 @@ def printSummary (m : Metrics) : IO Unit := do
 
 end Metrics
 
-end RedisLean
+end Redis

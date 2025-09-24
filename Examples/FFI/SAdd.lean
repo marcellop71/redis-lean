@@ -1,9 +1,9 @@
 import RedisLean.FFI
 import RedisLean.Log
 
-open RedisLean
-
 namespace FFISAddExample
+
+open Redis
 
 def ex0 : EIO RedisError Unit := do
   Log.EIO.info "example: basic set operations"

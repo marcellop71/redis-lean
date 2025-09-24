@@ -4,9 +4,9 @@
 import RedisLean.FFI
 import RedisLean.Log
 
-open RedisLean
-
 namespace FFISetExample
+
+open Redis
 
 def ex0 : EIO RedisError Unit := do
   Log.EIO.info "example: setting a key-value pair"

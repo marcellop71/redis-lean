@@ -5,9 +5,9 @@ import RedisLean.Ops
 import RedisLean.Log
 import RedisLean.Monad
 
-open RedisLean
-
 namespace MonadicSAddExample
+
+open Redis
 
 def ex0 : RedisM Unit := do
   Log.info "example: basic set operations"
@@ -119,8 +119,8 @@ def runAllExamples : RedisM Unit := do
 
 def main : IO Unit := do
   let config : Config := {}  -- Using default config
-  let redisConfig : RedisConfig := { config := config, enableMetrics := false }
-  let result ← runRedisNoState redisConfig runAllExamples
+  let r : Read := { config := config, enableMetrics := false }
+  let result ← runRedisNoState r runAllExamples
   match result with
   | Except.ok _ => Log.info "All examples completed successfully!"
   | Except.error e => Log.info s!"Error running examples: {e}"

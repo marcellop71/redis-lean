@@ -1,4 +1,4 @@
-namespace RedisLean
+namespace Redis
 
 inductive RedisConnectError where
   | IOError (msg : String)
@@ -34,4 +34,4 @@ instance : ToString RedisError where
   | .noExpiryDefinedError key => s!"no expiry defined error: {key}"
   | .otherError msg => s!"other error: {msg}"
 
-end RedisLean
+end Redis

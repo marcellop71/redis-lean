@@ -1,7 +1,7 @@
 -- FFI layer wrapping the hiredis C library
 import RedisLean.Error
 
-namespace RedisLean
+namespace Redis
 
 namespace FFI
 
@@ -255,4 +255,4 @@ def toIO {α : Type} (eio : EIO RedisError α) : IO α :=
 
 end FFI
 
-end RedisLean
+end Redis

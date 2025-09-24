@@ -3,9 +3,7 @@ import RedisLean.FFI
 import RedisLean.Enums
 import RedisLean.Monad
 
-open RedisLean
-
-namespace RedisLean
+namespace Redis
 
 -- Redis operations collected in a single capability interface (typeclass)
 -- [should describe: algebra of capabilities, i.e. the properties of these operations, including composition and pipelines]
@@ -355,4 +353,4 @@ def unlessM (condition : RedisM Bool) (action : RedisM Unit) : RedisM Unit := do
   let cond ← condition
   if not cond then action else return ()
 
-end RedisLean
+end Redis

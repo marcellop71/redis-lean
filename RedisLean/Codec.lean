@@ -1,6 +1,6 @@
 import Lean.Data.Json
 
-namespace RedisLean
+namespace Redis
 
 -- Codec α means that the type α can be serialized and deserialized to and from a ByteArray
 class Codec (α : Type u) where
@@ -63,4 +63,4 @@ instance [Lean.ToJson α] [Lean.FromJson α] : Codec α where
     let json ← Lean.Json.parse str |>.mapError (s!"JSON parse error: {·}")
     Lean.fromJson? json |>.mapError (s!"JSON dec error: {·}")
 
-end RedisLean
+end Redis

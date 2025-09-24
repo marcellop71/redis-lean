@@ -1,4 +1,4 @@
-namespace RedisLean
+namespace Redis
 
 -- Redis connection configuration
 structure Config where
@@ -54,4 +54,4 @@ def fromUrl (url : String) : Option Config := do
 
 end Config
 
-end RedisLean
+end Redis

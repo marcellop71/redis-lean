@@ -14,7 +14,7 @@ import RedisLean.Log
 import RedisLean.Monad
 import Cli
 
-open RedisLean
+open Redis
 open Cli
 
 -- Command-line options for selecting example types
@@ -46,32 +46,32 @@ def runFFIExamples : IO Unit := do
 def runMonadicExamples : IO Unit := do
   Log.info "Higher-level monadic Redis client"
   let config : Config := {}  -- Using default config
-  let redisConfig : RedisConfig := { config := config, enableMetrics := false }
+  let r : Read := { config := config, enableMetrics := false }
   try
     -- Run Set examples
     Log.info "📝 Running Monadic Set Examples..."
-    let setResult ← runRedisNoState redisConfig MonadicSetExample.runAllExamples
+    let setResult ← runRedisNoState r MonadicSetExample.runAllExamples
     match setResult with
     | Except.ok _ => Log.info "✅ Set examples completed successfully"
     | Except.error e => Log.error s!"❌ Set examples failed: {e}"
 
     -- Run Get examples
     Log.info "📖 Running Monadic Get Examples..."
-    let getResult ← runRedisNoState redisConfig MonadicGetExample.runAllExamples
+    let getResult ← runRedisNoState r MonadicGetExample.runAllExamples
     match getResult with
     | Except.ok _ => Log.info "✅ Get examples completed successfully"
     | Except.error e => Log.error s!"❌ Get examples failed: {e}"
 
     -- Run Del examples
     Log.info "🗑️  Running Monadic Del Examples..."
-    let delResult ← runRedisNoState redisConfig MonadicDelExample.runAllExamples
+    let delResult ← runRedisNoState r MonadicDelExample.runAllExamples
     match delResult with
     | Except.ok _ => Log.info "✅ Del examples completed successfully"
     | Except.error e => Log.error s!"❌ Del examples failed: {e}"
 
     -- Run SAdd examples
     Log.info "📦 Running Monadic SAdd Examples..."
-    let saddResult ← runRedisNoState redisConfig MonadicSAddExample.runAllExamples
+    let saddResult ← runRedisNoState r MonadicSAddExample.runAllExamples
     match saddResult with
     | Except.ok _ => Log.info "✅ SAdd examples completed successfully"
     | Except.error e => Log.error s!"❌ SAdd examples failed: {e}"
