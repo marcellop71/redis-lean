@@ -8,7 +8,7 @@ namespace FFISetExample
 
 open Redis
 
-def ex0 : EIO RedisError Unit := do
+def ex0 : EIO Error Unit := do
   Log.EIO.info "example: setting a key-value pair"
 
   FFI.withRedis "127.0.0.1" 6379 fun ctx => do
@@ -36,7 +36,7 @@ def ex0 : EIO RedisError Unit := do
     catch e =>
       Log.EIO.error s!"✗ error {e}"
 
-def ex1 : EIO RedisError Unit := do
+def ex1 : EIO Error Unit := do
   Log.EIO.info "example: basic set/get operations"
 
   FFI.withRedis "127.0.0.1" 6379 fun ctx => do
@@ -58,7 +58,7 @@ def ex1 : EIO RedisError Unit := do
     catch e =>
       Log.EIO.error s!"✗ get error: {e}"
 
-def ex2 : EIO RedisError Unit := do
+def ex2 : EIO Error Unit := do
   Log.EIO.info "example: multiple key operations"
 
   FFI.withRedis "127.0.0.1" 6379 fun ctx => do
@@ -88,7 +88,7 @@ def ex2 : EIO RedisError Unit := do
     catch e =>
       Log.EIO.error s!"✗ get error: {e}"
 
-def runAllExamples : EIO RedisError Unit := do
+def runAllExamples : EIO Error Unit := do
   ex0
   ex1
   ex2

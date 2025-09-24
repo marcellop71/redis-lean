@@ -1,21 +1,21 @@
 namespace Redis
 
-inductive RedisConnectError where
+inductive ConnectError where
   | IOError (msg : String)
   | EOFError (msg : String)
   | protocolError (msg : String)
   | otherError (msg : String)
   deriving Repr, Inhabited
 
-instance : ToString RedisConnectError where
+instance : ToString ConnectError where
   toString
   | .IOError msg => s!"connect IO error: {msg}"
   | .EOFError msg => s!"connect EOF error: {msg}"
   | .protocolError msg => s!"connect protocol error: {msg}"
   | .otherError msg => s!"connect other error: {msg}"
 
-inductive RedisError where
-  | connectError (kind: RedisConnectError)
+inductive Error where
+  | connectError (kind: ConnectError)
   | nullReplyError (msg: String)
   | replyError (msg: String)
   | unexpectedReplyTypeError (msg: String)
@@ -24,7 +24,7 @@ inductive RedisError where
   | otherError (msg: String)
   deriving Repr, Inhabited
 
-instance : ToString RedisError where
+instance : ToString Error where
   toString
   | .connectError kind => s!"connect error: {kind}"
   | .nullReplyError msg => s!"null reply error: {msg}"

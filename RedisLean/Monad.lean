@@ -19,7 +19,7 @@ structure State where
   metrics : Metrics
   recordLatency : String → Nat → IO Unit := fun _ _ => pure ()
 
-abbrev RedisM := ReaderT Read $ StateRefT State $ ExceptT RedisError IO
+abbrev RedisM := ReaderT Read $ StateRefT State $ ExceptT Error IO
 abbrev StateRef := ST.Ref IO.RealWorld State
 
 def getConfig : RedisM Config := do
@@ -42,7 +42,7 @@ def getContext : RedisM FFI.Ctx := do
 
 -- lift an EIO operation that uses the Redis context with latency recording
 def liftRedisEIO {α}
-  (cmd : RedisCmd) (f : FFI.Ctx → EIO RedisError α) : RedisM α := do
+  (cmd : RedisCmd) (f : FFI.Ctx → EIO Error α) : RedisM α := do
   let r ← read
   let s ← get
   if r.enableMetrics then
@@ -62,7 +62,7 @@ def liftRedisEIO {α}
   else
     ExceptT.mk (EIO.toIO' (f s.ctx))
 
-def connect (r : Read) : ExceptT RedisError IO State := do
+def connect (r : Read) : ExceptT Error IO State := do
   let ctxResult ← ExceptT.mk (EIO.toIO' (FFI.hiredis.connect r.config.host (UInt32.ofNat r.config.port)))
   let metrics ← Metrics.make
   if r.enableMetrics then
@@ -76,7 +76,7 @@ def connect (r : Read) : ExceptT RedisError IO State := do
   }
   return s
 
-def init (r : Read) : IO (Except RedisError StateRef) := do
+def init (r : Read) : IO (Except Error StateRef) := do
   try
     let result ← ExceptT.run do
       let s ← connect r
@@ -84,25 +84,25 @@ def init (r : Read) : IO (Except RedisError StateRef) := do
       pure sRef
     pure result
   catch e =>
-    pure <| Except.error <| RedisError.otherError s!"Failed to initialize Redis connection: {e}"
+    pure <| Except.error <| Error.otherError s!"Failed to initialize Redis connection: {e}"
 
 def runRedis {α : Type}
     (r : Read)
     (sRef : StateRef)
-    (comp : RedisM α) : IO (Except RedisError α) := do
+    (comp : RedisM α) : IO (Except Error α) := do
   ExceptT.run $ (comp.run r) sRef
 
 def runRedisFromState
     (r : Read)
     (s : State)
-    (comp : RedisM α) : IO (Except RedisError α) := do
+    (comp : RedisM α) : IO (Except Error α) := do
   let sRef ← ST.mkRef s
   runRedis r sRef comp
 
 def runRedisFromStateReturnsMetrics
     (r : Read)
     (s : State)
-    (comp : RedisM α) : IO (Except RedisError α × Metrics) := do
+    (comp : RedisM α) : IO (Except Error α × Metrics) := do
   let sRef ← ST.mkRef s
   let result ← (comp.run r) sRef
   match result with
@@ -113,7 +113,7 @@ def runRedisFromStateReturnsMetrics
 
 def runRedisNoState
     (r : Read)
-    (comp : RedisM α) : IO (Except RedisError α) := do
+    (comp : RedisM α) : IO (Except Error α) := do
   let result ← connect r |>.run
   match result with
   | Except.error e => return Except.error e

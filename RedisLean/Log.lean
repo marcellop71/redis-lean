@@ -261,23 +261,23 @@ namespace EIO
 private def liftIO {ε α} (ioa : IO α) (handleError : IO.Error → ε) : EIO ε α :=
   IO.toEIO handleError ioa
 
-def trace (msg : String) : EIO RedisError Unit :=
-  liftIO (Log.trace msg) (fun e => RedisError.otherError (toString e))
+def trace (msg : String) : EIO Error Unit :=
+  liftIO (Log.trace msg) (fun e => Error.otherError (toString e))
 
-def debug (msg : String) : EIO RedisError Unit :=
-  liftIO (Log.debug msg) (fun e => RedisError.otherError (toString e))
+def debug (msg : String) : EIO Error Unit :=
+  liftIO (Log.debug msg) (fun e => Error.otherError (toString e))
 
-def info (msg : String) : EIO RedisError Unit :=
-  liftIO (Log.info msg) (fun e => RedisError.otherError (toString e))
+def info (msg : String) : EIO Error Unit :=
+  liftIO (Log.info msg) (fun e => Error.otherError (toString e))
 
-def warn (msg : String) : EIO RedisError Unit :=
-  liftIO (Log.warn msg) (fun e => RedisError.otherError (toString e))
+def warn (msg : String) : EIO Error Unit :=
+  liftIO (Log.warn msg) (fun e => Error.otherError (toString e))
 
-def error (msg : String) : EIO RedisError Unit :=
-  liftIO (Log.error msg) (fun e => RedisError.otherError (toString e))
+def error (msg : String) : EIO Error Unit :=
+  liftIO (Log.error msg) (fun e => Error.otherError (toString e))
 
-def fatal (msg : String) : EIO RedisError Unit :=
-  liftIO (Log.fatal msg) (fun e => RedisError.otherError (toString e))
+def fatal (msg : String) : EIO Error Unit :=
+  liftIO (Log.fatal msg) (fun e => Error.otherError (toString e))
 
 end EIO
 

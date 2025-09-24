@@ -8,7 +8,7 @@ namespace FFIDelExample
 
 open Redis
 
-def ex0 : EIO RedisError Unit := do
+def ex0 : EIO Error Unit := do
   Log.EIO.info "example: basic set/del operations"
 
   FFI.withRedis "127.0.0.1" 6379 fun ctx => do
@@ -36,7 +36,7 @@ def ex0 : EIO RedisError Unit := do
     catch e =>
       Log.EIO.error s!"✗ del error: {e}"
 
-def ex1 : EIO RedisError Unit := do
+def ex1 : EIO Error Unit := do
   Log.EIO.info "example: multiple key deletion"
 
   FFI.withRedis "127.0.0.1" 6379 fun ctx => do
@@ -64,7 +64,7 @@ def ex1 : EIO RedisError Unit := do
     catch e =>
       Log.EIO.error s!"✗ delete error: {e}"
 
-def ex2 : EIO RedisError Unit := do
+def ex2 : EIO Error Unit := do
   Log.EIO.info "example: existence checking with del"
 
   FFI.withRedis "127.0.0.1" 6379 fun ctx => do
@@ -100,7 +100,7 @@ def ex2 : EIO RedisError Unit := do
     catch e =>
       Log.EIO.error s!"✗ del error: {e}"
 
-def runAllExamples : EIO RedisError Unit := do
+def runAllExamples : EIO Error Unit := do
   ex0
   ex1
   ex2

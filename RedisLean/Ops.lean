@@ -89,7 +89,7 @@ instance [Codec α] : Ops α RedisM where
     let tmp ← liftRedisEIO RedisCmd.GET (fun ctx => FFI.hiredis.get ctx (Codec.enc k))
     match Codec.dec tmp with
     | .ok value => return value
-    | .error msg => throw (RedisError.otherError s!"Codec decoding failed: {msg}")
+    | .error msg => throw (Error.otherError s!"Codec decoding failed: {msg}")
 
   del := fun ks => do
     let result ← liftRedisEIO RedisCmd.DEL (fun ctx => FFI.hiredis.del ctx (ks.map Codec.enc))
@@ -129,7 +129,7 @@ instance [Codec α] : Ops α RedisM where
     let tmp ← liftRedisEIO RedisCmd.HGET (fun ctx => FFI.hiredis.hget ctx (Codec.enc k) (Codec.enc field))
     match Codec.dec tmp with
     | .ok value => return value
-    | .error msg => throw (RedisError.otherError s!"Codec decoding failed: {msg}")
+    | .error msg => throw (Error.otherError s!"Codec decoding failed: {msg}")
   hgetall := fun k => liftRedisEIO RedisCmd.HGETALL (fun ctx => FFI.hiredis.hgetall ctx (Codec.enc k))
   hdel := fun {β} [Codec β] k field => do
     let result ← liftRedisEIO RedisCmd.HDEL (fun ctx => FFI.hiredis.hdel ctx (Codec.enc k) (Codec.enc field))
@@ -173,7 +173,7 @@ instance [Codec α] : Ops α RedisM where
     let result ← liftRedisEIO RedisCmd.XADD (fun ctx => FFI.hiredis.xadd ctx (Codec.enc k) (String.toUTF8 stream_id) encoded_fv)
     match String.fromUTF8? result with
     | some str => return str
-    | none => throw (RedisError.otherError "Invalid UTF-8 in XADD response")
+    | none => throw (Error.otherError "Invalid UTF-8 in XADD response")
 
   xread := fun streams count_opt block_opt => do
     let encoded_streams := streams.map (fun (stream, id) => (Codec.enc stream, String.toUTF8 id))
