@@ -51,6 +51,11 @@ inductive RedisCmd where
   | SCARD   : RedisCmd
   | SADD    : RedisCmd
   | PUBLISH : RedisCmd
+  | SUBSCRIBE : RedisCmd
+  | AUTH    : RedisCmd
+  | HELLO   : RedisCmd
+  | TTL     : RedisCmd
+  | PTTL    : RedisCmd
   | PING    : RedisCmd
   | XADD    : RedisCmd
   | XREAD   : RedisCmd
@@ -86,6 +91,11 @@ def RedisCmd.toString : RedisCmd → String
   | .SCARD    => "SCARD"
   | .SADD     => "SADD"
   | .PUBLISH  => "PUBLISH"
+  | .SUBSCRIBE => "SUBSCRIBE"
+  | .AUTH     => "AUTH"
+  | .HELLO    => "HELLO"
+  | .TTL      => "TTL"
+  | .PTTL     => "PTTL"
   | .PING     => "PING"
   | .XADD     => "XADD"
   | .XREAD    => "XREAD"

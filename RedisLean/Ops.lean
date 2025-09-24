@@ -57,6 +57,15 @@ class Ops (α: Type) [Codec α] (m : Type → Type) where
 
   -- Pub/Sub operations
   publish {β: Type} [Codec β] : String → β → m Nat
+  subscribe : String → m Bool
+
+  -- Authentication and protocol operations
+  auth : String → m Bool
+  hello : Nat → m ByteArray
+
+  -- TTL operations
+  ttl : α → m Nat
+  pttl : α → m Nat
 
   -- Redis Streams operations
   xadd {β : Type} [Codec β] : α → String → List (α × β) → m String
@@ -144,6 +153,20 @@ instance [Codec α] : Ops α RedisM where
 
   publish := fun {β} [Codec β] channel message => do
     let result ← liftRedisEIO RedisCmd.PUBLISH (fun ctx => FFI.hiredis.publish ctx channel (Codec.enc message))
+    return result.toNat
+
+  subscribe := fun channel => liftRedisEIO RedisCmd.SUBSCRIBE (fun ctx => FFI.hiredis.subscribe ctx channel)
+
+  -- Authentication and protocol operations implementation
+  auth := fun password => liftRedisEIO RedisCmd.AUTH (fun ctx => FFI.hiredis.auth ctx password)
+  hello := fun protocol_version => liftRedisEIO RedisCmd.HELLO (fun ctx => FFI.hiredis.hello ctx (UInt64.ofNat protocol_version))
+
+  -- TTL operations implementation
+  ttl := fun k => do
+    let result ← liftRedisEIO RedisCmd.TTL (fun ctx => FFI.hiredis.ttl ctx (Codec.enc k))
+    return result.toNat
+  pttl := fun k => do
+    let result ← liftRedisEIO RedisCmd.PTTL (fun ctx => FFI.hiredis.pttl ctx (Codec.enc k))
     return result.toNat
 
   -- Redis Streams operations implementation
@@ -247,6 +270,24 @@ def zrange (k : α) (start stop : Int) : m (List ByteArray) := Ops.zrange k star
 -- Publish a message to a channel
 def publish [inst : Ops α m] [Codec β] (channel : String) (message : β) : m Nat :=
   inst.publish channel message
+
+-- Subscribe to a channel
+def subscribe [inst : Ops α m] (channel : String) : m Bool :=
+  inst.subscribe channel
+
+-- Authenticate with Redis server
+def auth [inst : Ops α m] (password : String) : m Bool :=
+  inst.auth password
+
+-- Send HELLO command for protocol negotiation
+def hello [inst : Ops α m] (protocol_version : Nat := 3) : m ByteArray :=
+  inst.hello protocol_version
+
+-- Get TTL of a key in seconds
+def ttl (k : α) : m Nat := Ops.ttl k
+
+-- Get TTL of a key in milliseconds
+def pttl (k : α) : m Nat := Ops.pttl k
 
 -- Ping the Redis server
 def ping (msg : α) : m Bool := Ops.ping msg

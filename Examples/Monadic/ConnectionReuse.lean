@@ -50,7 +50,7 @@ def existsAndMetrics : RedisM Unit := do
   Log.info s!"user:1:nonexistent exists: {fakeExists}"
 
   -- Get current metrics
-  let metrics ← getMetrics
+  -- let metrics ← getMetrics
   Log.info "📊 Current metrics recorded during operations"
 
   Log.info "✅ Exists and metrics operations completed"
@@ -114,7 +114,7 @@ def runWithConnectionReuse : IO Unit := do
 
       -- Get final metrics from the connection
       Log.info "\n--- Final Metrics ---"
-      let finalState ← stateRef.get
+      -- let finalState ← stateRef.get
       Log.info "📊 All operations completed using the same Redis connection"
       Log.info "🔗 Connection was reused across multiple operation sets"
 

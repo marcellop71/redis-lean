@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <hiredis/hiredis.h>
 #include <lean/lean.h>
 
@@ -10,6 +11,8 @@
 #include "errors.c"
 #include "connect.c"
 #include "ping.c"
+#include "auth.c"
+#include "hello.c"
 #include "set.c"
 #include "setex.c"
 #include "get.c"
@@ -22,6 +25,7 @@
 #include "scard.c"
 #include "sadd.c"
 #include "publish.c"
+#include "subscribe.c"
 #include "flushall.c"
 #include "command.c"
 #include "ttl.c"

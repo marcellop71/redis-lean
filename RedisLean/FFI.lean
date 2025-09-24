@@ -34,6 +34,12 @@ opaque free (ctx : @& Ctx) : EIO RedisError Unit
 @[extern "l_hiredis_ping"]
 opaque ping (ctx : @& Ctx) (msg : @& ByteArray) : EIO RedisError Bool
 
+@[extern "l_hiredis_auth"]
+opaque auth (ctx : @& Ctx) (password : @& String) : EIO RedisError Bool
+
+@[extern "l_hiredis_hello"]
+opaque hello (ctx : @& Ctx) (protocol_version : @& UInt64) : EIO RedisError ByteArray
+
 @[extern "l_hiredis_set"]
 opaque set (ctx : @& Ctx) (k : @& ByteArray) (v : @& ByteArray) (existsOption : @& UInt8) : EIO RedisError Unit
 
@@ -78,6 +84,9 @@ opaque flushall (ctx : @& Ctx) (mode : @& String) : EIO RedisError Bool
 
 @[extern "l_hiredis_publish"]
 opaque publish (ctx : @& Ctx) (channel : @& String) (message : @& ByteArray) : EIO RedisError UInt64
+
+@[extern "l_hiredis_subscribe"]
+opaque subscribe (ctx : @& Ctx) (channel : @& String) : EIO RedisError Bool
 
 @[extern "l_hiredis_command"]
 opaque command (ctx : @& Ctx) (command_str : @& String) : EIO RedisError ByteArray
@@ -150,6 +159,10 @@ def free (ctx : Ctx) : EIO RedisError Unit := hiredis.free ctx
 
 def ping (ctx : Ctx) (msg : ByteArray) : EIO RedisError Bool := hiredis.ping ctx msg
 
+def auth (ctx : Ctx) (password : String) : EIO RedisError Bool := hiredis.auth ctx password
+
+def hello (ctx : Ctx) (protocol_version : UInt64 := 3) : EIO RedisError ByteArray := hiredis.hello ctx protocol_version
+
 def set (ctx : Ctx) (k v : ByteArray) (existsOption : SetExistsOption := .none) : EIO RedisError Unit :=
   hiredis.set ctx k v existsOption.toUInt8
 
@@ -181,6 +194,8 @@ def sadd (ctx : Ctx) (key member : ByteArray) : EIO RedisError UInt64 := hiredis
 def flushall (ctx : Ctx) (mode : String := "SYNC") : EIO RedisError Bool := hiredis.flushall ctx mode
 
 def publish (ctx : Ctx) (channel : String) (message : ByteArray) : EIO RedisError UInt64 := hiredis.publish ctx channel message
+
+def subscribe (ctx : Ctx) (channel : String) : EIO RedisError Bool := hiredis.subscribe ctx channel
 
 def command (ctx : Ctx) (command_str : String) : EIO RedisError ByteArray := hiredis.command ctx command_str
 
