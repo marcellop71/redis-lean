@@ -50,6 +50,7 @@ inductive RedisCmd where
   | SISMEMBER : RedisCmd
   | SCARD   : RedisCmd
   | SADD    : RedisCmd
+  | SMEMBERS : RedisCmd
   | PUBLISH : RedisCmd
   | SUBSCRIBE : RedisCmd
   | AUTH    : RedisCmd
@@ -90,6 +91,7 @@ def RedisCmd.toString : RedisCmd → String
   | .SISMEMBER => "SISMEMBER"
   | .SCARD    => "SCARD"
   | .SADD     => "SADD"
+  | .SMEMBERS => "SMEMBERS"
   | .PUBLISH  => "PUBLISH"
   | .SUBSCRIBE => "SUBSCRIBE"
   | .AUTH     => "AUTH"

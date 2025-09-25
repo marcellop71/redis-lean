@@ -37,6 +37,7 @@ class Ops (α: Type) [Codec α] (m : Type → Type) where
   sismember {β : Type} [Codec β] : α → β → m Bool
   scard : α → m Nat
   sadd {β : Type} [Codec β] : α → β → m Nat
+  smembers : α → m (List ByteArray)
 
   -- operations on hashes
   hset {β γ : Type} [Codec β] [Codec γ] : α → β → γ → m Nat
@@ -119,6 +120,7 @@ instance [Codec α] : Ops α RedisM where
   sadd := fun k member => do
     let result ← liftRedisEIO RedisCmd.SADD (fun ctx => FFI.hiredis.sadd ctx (Codec.enc k) (Codec.enc member))
     return result.toNat
+  smembers := fun k => liftRedisEIO RedisCmd.SMEMBERS (fun ctx => FFI.hiredis.smembers ctx (Codec.enc k))
 
   -- Hash operations implementation
   hset := fun {β γ} [Codec β] [Codec γ] k field value => do
@@ -249,6 +251,9 @@ def scard (k : α) : m Nat := Ops.scard k
 
 -- Add a member to a set
 def sadd (k : α) (member : α) : m Nat := Ops.sadd k member
+
+-- Get all members of a set
+def smembers (k : α) : m (List ByteArray) := Ops.smembers k
 
 -- Hash operations
 def hset {γ : Type} [Codec γ] (k : α) (field : α) (value : γ) : m Nat := Ops.hset k field value

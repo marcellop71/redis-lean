@@ -79,6 +79,9 @@ opaque scard (ctx : @& Ctx) (key : @& ByteArray) : EIO Error UInt64
 @[extern "l_hiredis_sadd"]
 opaque sadd (ctx : @& Ctx) (key : @& ByteArray) (member : @& ByteArray) : EIO Error UInt64
 
+@[extern "l_hiredis_smembers"]
+opaque smembers (ctx : @& Ctx) (key : @& ByteArray) : EIO Error (List ByteArray)
+
 @[extern "l_hiredis_flushall"]
 opaque flushall (ctx : @& Ctx) (mode : @& String) : EIO Error Bool
 
@@ -190,6 +193,8 @@ def sismember (ctx : Ctx) (key member : ByteArray) : EIO Error Bool := hiredis.s
 def scard (ctx : Ctx) (key : ByteArray) : EIO Error UInt64 := hiredis.scard ctx key
 
 def sadd (ctx : Ctx) (key member : ByteArray) : EIO Error UInt64 := hiredis.sadd ctx key member
+
+def smembers (ctx : Ctx) (key : ByteArray) : EIO Error (List ByteArray) := hiredis.smembers ctx key
 
 def flushall (ctx : Ctx) (mode : String := "SYNC") : EIO Error Bool := hiredis.flushall ctx mode
 

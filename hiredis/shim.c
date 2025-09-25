@@ -24,6 +24,7 @@
 #include "sismember.c"
 #include "scard.c"
 #include "sadd.c"
+#include "smembers.c"
 #include "publish.c"
 #include "subscribe.c"
 #include "flushall.c"
