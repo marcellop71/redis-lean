@@ -5,7 +5,7 @@
    "type": "git",
    "subDir": null,
    "scope": "",
-   "rev": "141c459c805a9f6dba66dec431358f3423aea96d",
+   "rev": "eb76f8296943b2f1dd06739cd3136b4163fabbe2",
    "name": "arrowLean",
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
