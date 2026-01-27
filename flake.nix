@@ -15,27 +15,29 @@
         zlogDeps = zlog-lean.lib.${system};
         arrowDeps = arrow-lean.lib.${system};
         # Platform-specific Lean 4 binary
-        leanVersion = "4.27.0-rc1";
+        leanVersion = "4.27.0";
         leanPlatform = if pkgs.stdenv.isDarwin then "darwin" else "linux";
         leanArch = if pkgs.stdenv.isDarwin then "darwin" else "linux";
         leanSha256 = if pkgs.stdenv.isDarwin
-          then "1b401031a7b24d28cd305fe0b74ba36f698173d6f7a58e6569bcc0bb88a924a3"
-          else "64e651f5846a0f4e6e9759a09f5818ae9d16eecf79c157a3bb50968211494a92";
+          then "sha256-5MpUHYaIHDVJfLbmwaITWPA6Syz7Lo1OFOWNwqCoBa4="
+          else "sha256-BW4tyFZPwGSoAeafPrGMBEubVGvIsOWiwAJH+KHLjOY=";
 
         lean4Bin = pkgs.stdenv.mkDerivation {
           pname = "lean4";
           version = leanVersion;
           src = pkgs.fetchurl {
-            url = "https://github.com/leanprover/lean4/releases/download/v${leanVersion}/lean-${leanVersion}-${leanPlatform}.zip";
+            url = "https://github.com/leanprover/lean4/releases/download/v${leanVersion}/lean-${leanVersion}-${leanPlatform}.tar.zst";
             sha256 = leanSha256;
           };
-          nativeBuildInputs = [ pkgs.unzip ]
+          nativeBuildInputs = [ pkgs.zstd ]
             ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
           buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib pkgs.zlib ];
+          unpackPhase = ''
+            tar --zstd -xf $src
+          '';
           installPhase = ''
             mkdir -p $out
-            unzip -q $src -d $out
-            ln -s $out/lean-${leanVersion}-${leanArch}/bin $out/bin
+            cp -r lean-${leanVersion}-${leanArch}/* $out/
           '';
         };
 
