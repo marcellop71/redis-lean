@@ -7,11 +7,11 @@
         "zlog-lean": "zlog-lean"
       },
       "locked": {
-        "lastModified": 1768724544,
-        "narHash": "sha256-WVHNcGCt4a26qUGNdyqK29mdrwh+DY+Z8T1qq+dGOdo=",
+        "lastModified": 1770508734,
+        "narHash": "sha256-ouu6Mbu9WvtIUEWw+4Y70T5hJgW4cdUJUqA4wOetTek=",
         "owner": "marcellop71",
         "repo": "arrow-lean",
-        "rev": "aa0d8ccae884667048178e300e231374e977ac84",
+        "rev": "de7c8f03366e264cd1034e98bf76ed5c0e1069e0",
         "type": "github"
       },
       "original": {
@@ -230,11 +230,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1768677464,
-        "narHash": "sha256-n82hrfZ/JX0s34wjxSdgcGb9WjekoG1y9JXNmFYiuiU=",
+        "lastModified": 1769514383,
+        "narHash": "sha256-8y2euXePtxv8Swbw6HqvO9j4zUf6mBkdLqB+Lfqa6Mo=",
         "owner": "marcellop71",
         "repo": "zlog-lean",
-        "rev": "309bc89db1d57c0ef5061356ef50aeeadd27c9c5",
+        "rev": "430b8cb1aca1bebf710811f3bd274beb7253934b",
         "type": "github"
       },
       "original": {
@@ -249,11 +249,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1768677464,
-        "narHash": "sha256-n82hrfZ/JX0s34wjxSdgcGb9WjekoG1y9JXNmFYiuiU=",
+        "lastModified": 1769514383,
+        "narHash": "sha256-8y2euXePtxv8Swbw6HqvO9j4zUf6mBkdLqB+Lfqa6Mo=",
         "owner": "marcellop71",
         "repo": "zlog-lean",
-        "rev": "309bc89db1d57c0ef5061356ef50aeeadd27c9c5",
+        "rev": "430b8cb1aca1bebf710811f3bd274beb7253934b",
         "type": "github"
       },
       "original": {
