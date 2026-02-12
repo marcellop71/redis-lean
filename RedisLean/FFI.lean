@@ -422,7 +422,7 @@ opaque slowlogreset (ctx : @& Ctx) : EIO Error Unit
 
 -- Redis Streams commands
 @[extern "l_hiredis_xadd"]
-opaque xadd (ctx : @& Ctx) (key : @& ByteArray) (stream_id : @& ByteArray) (field_values : @& List (ByteArray × ByteArray)) : EIO Error ByteArray
+opaque xadd (ctx : @& Ctx) (key : @& ByteArray) (stream_id : @& ByteArray) (field_values : @& List (ByteArray × ByteArray)) (maxlen_opt : @& Option UInt64) : EIO Error ByteArray
 
 @[extern "l_hiredis_xread"]
 opaque xread (ctx : @& Ctx) (streams : @& List (ByteArray × ByteArray)) (count_opt : @& Option UInt64) (block_opt : @& Option UInt64) : EIO Error ByteArray
@@ -1035,8 +1035,8 @@ def slowloglen (ctx : Ctx) : EIO Error UInt64 := Internal.slowloglen ctx
 def slowlogreset (ctx : Ctx) : EIO Error Unit := Internal.slowlogreset ctx
 
 -- Redis Streams operations
-def xadd (ctx : Ctx) (key stream_id : ByteArray) (field_values : List (ByteArray × ByteArray)) : EIO Error ByteArray :=
-  Internal.xadd ctx key stream_id field_values
+def xadd (ctx : Ctx) (key stream_id : ByteArray) (field_values : List (ByteArray × ByteArray)) (maxlen_opt : Option UInt64 := none) : EIO Error ByteArray :=
+  Internal.xadd ctx key stream_id field_values maxlen_opt
 
 def xread (ctx : Ctx) (streams : List (ByteArray × ByteArray)) (count_opt : Option UInt64 := none) (block_opt : Option UInt64 := none) : EIO Error ByteArray :=
   Internal.xread ctx streams count_opt block_opt
