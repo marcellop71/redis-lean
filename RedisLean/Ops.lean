@@ -141,7 +141,7 @@ class Ops (α: Type) [Codec α] (m : Type → Type) where
   pttl : α → m Nat
 
   -- Redis Streams operations
-  xadd {β : Type} [Codec β] : α → String → List (α × β) → m String
+  xadd {β : Type} [Codec β] : α → String → List (α × β) → Option Nat → m String
   xread : List (α × String) → Option Nat → Option Nat → m ByteArray
   xrange : α → String → String → Option Nat → m ByteArray
   xlen : α → m Nat
@@ -394,9 +394,10 @@ instance [Codec α] : Ops α RedisM where
     return result.toNat
 
   -- Redis Streams operations
-  xadd := fun {β} [Codec β] k stream_id field_values => do
+  xadd := fun {β} [Codec β] k stream_id field_values maxlen_opt => do
     let encoded_fv := field_values.map (fun (f, v) => (Codec.enc f, Codec.enc v))
-    let result ← liftRedisEIO RedisCmd.XADD (fun ctx => FFI.Internal.xadd ctx (Codec.enc k) (String.toUTF8 stream_id) encoded_fv)
+    let maxlen_u64 := maxlen_opt.map UInt64.ofNat
+    let result ← liftRedisEIO RedisCmd.XADD (fun ctx => FFI.Internal.xadd ctx (Codec.enc k) (String.toUTF8 stream_id) encoded_fv maxlen_u64)
     match String.fromUTF8? result with
     | some str => return str
     | none => throw (Error.otherError "Invalid UTF-8 in XADD response")
@@ -567,8 +568,8 @@ def ttl (k : α) : m Nat := Ops.ttl k
 def pttl (k : α) : m Nat := Ops.pttl k
 
 -- Redis Streams operations
-def xadd [Codec β] (k : α) (stream_id : String) (field_values : List (α × β)) : m String :=
-  Ops.xadd k stream_id field_values
+def xadd [Codec β] (k : α) (stream_id : String) (field_values : List (α × β)) (maxlen : Option Nat := none) : m String :=
+  Ops.xadd k stream_id field_values maxlen
 def xread (streams : List (α × String)) (count_opt : Option Nat := none) (block_opt : Option Nat := none) : m ByteArray :=
   Ops.xread streams count_opt block_opt
 def xrange (k : α) (start_id end_id : String) (count_opt : Option Nat := none) : m ByteArray :=
