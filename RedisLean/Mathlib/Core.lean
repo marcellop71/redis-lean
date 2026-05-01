@@ -201,7 +201,7 @@ def optionToExcept (o : Option α) (err : String) : Except String α :=
 def exceptToExcept (e : Except String α) : Except String α := e
 
 /-- Create a codec from JSON instances -/
-def jsonCodec [Lean.ToJson α] [Lean.FromJson α] : Codec α where
+@[reducible] def jsonCodec [Lean.ToJson α] [Lean.FromJson α] : Codec α where
   enc a := String.toUTF8 (Lean.toJson a).compress
   dec bs := do
     let str ← optionToExcept (String.fromUTF8? bs) "Invalid UTF-8"
