@@ -15,12 +15,12 @@
         zlogDeps = zlog-lean.lib.${system};
         arrowDeps = arrow-lean.lib.${system};
         # Platform-specific Lean 4 binary
-        leanVersion = "4.27.0";
+        leanVersion = "4.29.0";
         leanPlatform = if pkgs.stdenv.isDarwin then "darwin" else "linux";
         leanArch = if pkgs.stdenv.isDarwin then "darwin" else "linux";
         leanSha256 = if pkgs.stdenv.isDarwin
-          then "sha256-5MpUHYaIHDVJfLbmwaITWPA6Syz7Lo1OFOWNwqCoBa4="
-          else "sha256-BW4tyFZPwGSoAeafPrGMBEubVGvIsOWiwAJH+KHLjOY=";
+          then "sha256-/6y9ZMYLzJBY42kL4/93fZMloIx5XLuyduUPq10GYRo="
+          else "sha256-CJ9+UT7T6UNtGR9JhjMMC1OAnIa1mX9et/JVUMN0+kg=";
 
         lean4Bin = pkgs.stdenv.mkDerivation {
           pname = "lean4";

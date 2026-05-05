@@ -49,14 +49,14 @@ extern_lib libhiredis_shim pkg := do
   buildStaticLib (pkg.staticLibDir / name) #[obj]
 
 require Cli from git
-  "https://github.com/leanprover/lean4-cli.git" @ "v4.27.0"
+  "https://github.com/leanprover/lean4-cli.git" @ "v4.29.0"
 
 require LSpec from git
   "https://github.com/argumentcomputer/LSpec.git" @ "main"
 
 require zlogLean from git
-  "git@github.com:marcellop71/zlog-lean.git" @ "main"
+  "git@github.com:marcellop71/zlog-lean.git" @ "v4.29.0"
 
 require arrowLean from git
-  "git@github.com:marcellop71/arrow-lean.git" @ "main"
+  "git@github.com:marcellop71/arrow-lean.git" @ "v4.29.0"
 
