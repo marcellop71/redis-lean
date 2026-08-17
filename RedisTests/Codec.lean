@@ -18,6 +18,12 @@ def testDecodeFails (bytes : ByteArray) (α : Type) [Codec α] : Bool :=
   | .ok _ => false
   | .error _ => true
 
+-- Helper to test decoding success
+def testDecodeSucceeds (bytes : ByteArray) (α : Type) [Codec α] : Bool :=
+  match (Codec.dec bytes : Except String α) with
+  | .ok _ => true
+  | .error _ => false
+
 -- String Codec Tests
 def stringCodecTests : TestSeq :=
   test "Empty string codec" (testCodecRoundtrip "") $
@@ -54,10 +60,7 @@ def unitCodecTests : TestSeq :=
   test "Unit codec roundtrip" (testCodecRoundtrip ()) $
   test "Unit encoding produces empty bytes" (
     (Codec.enc ()).size == 0) $
-  test "Unit decoding always succeeds" (
-    match (Codec.dec "anything".toUTF8 : Except String Unit) with
-    | .ok _ => true
-    | .error _ => false)
+  test "Unit decoding always succeeds" (testDecodeSucceeds "anything".toUTF8 Unit)
 
 -- ByteArray Codec Tests
 def byteArrayCodecTests : TestSeq :=
