@@ -1,7 +1,7 @@
-// xadd :: UInt64 -> ByteArray -> ByteArray -> List (ByteArray × ByteArray) -> Option UInt64 -> EIO RedisError ByteArray
+// xadd :: Ctx -> ByteArray -> ByteArray -> List (ByteArray × ByteArray) -> Option UInt64 -> EIO RedisError ByteArray
 // Adds entry to stream with specified ID (or "*" for auto-generation)
 // When maxlen_opt is Some n, uses XADD key MAXLEN ~ n * field value ...
-lean_obj_res l_hiredis_xadd(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg stream_id, b_lean_obj_arg field_values, b_lean_obj_arg maxlen_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_xadd(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg stream_id, b_lean_obj_arg field_values, b_lean_obj_arg maxlen_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

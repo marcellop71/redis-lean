@@ -1,6 +1,6 @@
-// zintercard :: UInt64 -> List ByteArray -> Option UInt64 -> EIO Error UInt64
+// zintercard :: Ctx -> List ByteArray -> Option UInt64 -> EIO Error UInt64
 // Get the cardinality of the intersection of multiple sorted sets
-lean_obj_res l_hiredis_zintercard(uint64_t ctx, b_lean_obj_arg keys, b_lean_obj_arg limit_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_zintercard(b_lean_obj_arg ctx, b_lean_obj_arg keys, b_lean_obj_arg limit_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

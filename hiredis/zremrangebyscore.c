@@ -1,6 +1,6 @@
-// zremrangebyscore :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> EIO Error UInt64
+// zremrangebyscore :: Ctx -> ByteArray -> ByteArray -> ByteArray -> EIO Error UInt64
 // Remove members by score range
-lean_obj_res l_hiredis_zremrangebyscore(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg min, b_lean_obj_arg max, lean_obj_arg w) {
+lean_obj_res l_hiredis_zremrangebyscore(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg min, b_lean_obj_arg max, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

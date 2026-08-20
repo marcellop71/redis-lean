@@ -1,6 +1,6 @@
-// discard :: UInt64 -> EIO Error Unit
+// discard :: Ctx -> EIO Error Unit
 // Discard all commands issued after MULTI
-lean_obj_res l_hiredis_discard(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_discard(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "DISCARD");

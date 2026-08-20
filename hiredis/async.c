@@ -30,11 +30,11 @@ lean_obj_res l_hiredis_connect_nonblock(b_lean_obj_arg host, uint32_t port, lean
         return lean_io_result_mk_error(error);
     }
 
-    return lean_io_result_mk_ok(lean_box_uint64((uint64_t)conn));
+    return lean_io_result_mk_ok(mk_redis_connection_external(conn));
 }
 
 // Check if there's data available to read (non-blocking check)
-lean_obj_res l_hiredis_can_read(uint64_t ctx, uint64_t timeout_ms, lean_obj_arg w) {
+lean_obj_res l_hiredis_can_read(b_lean_obj_arg ctx, uint64_t timeout_ms, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     if (c->fd <= 0) {
@@ -58,7 +58,7 @@ lean_obj_res l_hiredis_can_read(uint64_t ctx, uint64_t timeout_ms, lean_obj_arg 
 }
 
 // Check if we can write (non-blocking check)
-lean_obj_res l_hiredis_can_write(uint64_t ctx, uint64_t timeout_ms, lean_obj_arg w) {
+lean_obj_res l_hiredis_can_write(b_lean_obj_arg ctx, uint64_t timeout_ms, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     if (c->fd <= 0) {
@@ -82,7 +82,7 @@ lean_obj_res l_hiredis_can_write(uint64_t ctx, uint64_t timeout_ms, lean_obj_arg
 }
 
 // Buffer write - send pending data in output buffer
-lean_obj_res l_hiredis_buffer_write(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_buffer_write(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     int done = 0;
@@ -97,7 +97,7 @@ lean_obj_res l_hiredis_buffer_write(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Buffer read - read data into input buffer
-lean_obj_res l_hiredis_buffer_read(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_buffer_read(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     int result = redisBufferRead(c);
@@ -111,7 +111,7 @@ lean_obj_res l_hiredis_buffer_read(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Try to get a reply from the input buffer (non-blocking)
-lean_obj_res l_hiredis_get_reply_nonblock(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_get_reply_nonblock(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
     redisReply* reply = NULL;
 
@@ -138,24 +138,24 @@ lean_obj_res l_hiredis_get_reply_nonblock(uint64_t ctx, lean_obj_arg w) {
     switch (reply->type) {
         case REDIS_REPLY_STRING:
         case REDIS_REPLY_STATUS:
-            result_obj = lean_mk_empty_byte_array(lean_box(reply->len));
+            result_obj = lean_alloc_sarray(1, reply->len, reply->len);
             memcpy(lean_sarray_cptr(result_obj), reply->str, reply->len);
             break;
 
         case REDIS_REPLY_INTEGER: {
             char buf[32];
             int len = snprintf(buf, sizeof(buf), "%lld", reply->integer);
-            result_obj = lean_mk_empty_byte_array(lean_box(len));
+            result_obj = lean_alloc_sarray(1, len, len);
             memcpy(lean_sarray_cptr(result_obj), buf, len);
             break;
         }
 
         case REDIS_REPLY_NIL:
-            result_obj = lean_mk_empty_byte_array(lean_box(0));
+            result_obj = lean_alloc_sarray(1, 0, 0);
             break;
 
         default:
-            result_obj = lean_mk_empty_byte_array(lean_box(0));
+            result_obj = lean_alloc_sarray(1, 0, 0);
             break;
     }
 
@@ -168,7 +168,7 @@ lean_obj_res l_hiredis_get_reply_nonblock(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Set non-blocking mode
-lean_obj_res l_hiredis_set_nonblock(uint64_t ctx, uint8_t nonblock, lean_obj_arg w) {
+lean_obj_res l_hiredis_set_nonblock(b_lean_obj_arg ctx, uint8_t nonblock, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     int flags = c->flags;

@@ -1,6 +1,6 @@
-// ltrim :: UInt64 -> ByteArray -> Int64 -> Int64 -> EIO Error Unit
+// ltrim :: Ctx -> ByteArray -> Int64 -> Int64 -> EIO Error Unit
 // Trim a list to the specified range
-lean_obj_res l_hiredis_ltrim(uint64_t ctx, b_lean_obj_arg key, int64_t start, int64_t stop, lean_obj_arg w) {
+lean_obj_res l_hiredis_ltrim(b_lean_obj_arg ctx, b_lean_obj_arg key, int64_t start, int64_t stop, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

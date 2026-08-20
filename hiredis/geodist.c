@@ -1,6 +1,6 @@
-// geodist :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> Option ByteArray -> EIO Error (Option Float)
+// geodist :: Ctx -> ByteArray -> ByteArray -> ByteArray -> Option ByteArray -> EIO Error (Option Float)
 // Get the distance between two members (unit: m, km, ft, mi)
-lean_obj_res l_hiredis_geodist(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg member1, b_lean_obj_arg member2, b_lean_obj_arg unit_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_geodist(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg member1, b_lean_obj_arg member2, b_lean_obj_arg unit_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

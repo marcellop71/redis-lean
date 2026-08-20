@@ -1,9 +1,9 @@
-// lrem :: UInt64 -> ByteArray -> Int64 -> ByteArray -> EIO Error UInt64
+// lrem :: Ctx -> ByteArray -> Int64 -> ByteArray -> EIO Error UInt64
 // Remove elements from a list
 // count > 0: remove count elements from head
 // count < 0: remove |count| elements from tail
 // count = 0: remove all elements equal to value
-lean_obj_res l_hiredis_lrem(uint64_t ctx, b_lean_obj_arg key, int64_t count, b_lean_obj_arg value, lean_obj_arg w) {
+lean_obj_res l_hiredis_lrem(b_lean_obj_arg ctx, b_lean_obj_arg key, int64_t count, b_lean_obj_arg value, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

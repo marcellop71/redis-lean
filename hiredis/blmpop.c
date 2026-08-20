@@ -1,9 +1,9 @@
-// blmpop :: UInt64 -> Float -> List ByteArray -> UInt8 -> Option UInt64 -> EIO Error (Option (ByteArray × List ByteArray))
+// blmpop :: Ctx -> Float -> List ByteArray -> UInt8 -> Option UInt64 -> EIO Error (Option (ByteArray × List ByteArray))
 // Blocking pop elements from multiple lists
 // timeout: seconds to wait (0 = wait indefinitely)
 // direction: 0 = LEFT, 1 = RIGHT
 // count: optional count of elements to pop
-lean_obj_res l_hiredis_blmpop(uint64_t ctx, double timeout, b_lean_obj_arg keys, uint8_t direction, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_blmpop(b_lean_obj_arg ctx, double timeout, b_lean_obj_arg keys, uint8_t direction, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

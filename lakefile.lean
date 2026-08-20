@@ -36,13 +36,29 @@ lean_exe redis_tests where
   root := `RedisTests.TestRunner
 
 target hiredis_shim_o pkg : FilePath := do
-  let srcFile := pkg.dir / "hiredis" / "shim.c"
+  let hiredisDir := pkg.dir / "hiredis"
+  let srcFile := hiredisDir / "shim.c"
   let oFile   := pkg.buildDir / "hiredis" / "shim.o"
   IO.FS.createDirAll oFile.parent.get!
-  let flags := #["-fPIC", "-O2", "-I", (← getLeanIncludeDir).toString, "-fno-stack-protector"]
-  compileO oFile srcFile flags
-  return .pure oFile
+  -- `shim.c` is a single translation unit that #includes every other .c in this
+  -- directory, so all of them are build inputs. Without this the object file has
+  -- no trace and edits to the wrappers never trigger a rebuild.
+  let cFiles := (← hiredisDir.readDir).map (·.path)
+    |>.filter (fun p => p.extension == some "c")
+    |>.qsort (fun a b => a.toString < b.toString)
+  let mut inputJobs : Array (Job FilePath) := #[]
+  for path in cFiles do
+    inputJobs := inputJobs.push (← inputTextFile path)
+  let srcJob ← (Job.collectArray inputJobs).mapM fun _ => pure srcFile
+  -- Path-dependent, deliberately kept out of the trace.
+  let weakArgs := #["-I", (← getLeanIncludeDir).toString]
+  -- Behaviour-affecting: a change here must force a rebuild.
+  let traceArgs := #["-fPIC", "-O2", "-fno-stack-protector",
+                     "-Wall", "-Wextra", "-Wno-unused-parameter",
+                     "-Werror=return-type", "-Werror=implicit-function-declaration"]
+  buildO oFile srcJob weakArgs traceArgs
 
+@[default_target]
 extern_lib libhiredis_shim pkg := do
   let obj ← hiredis_shim_o.fetch
   let name := nameToStaticLib "hiredis_shim"

@@ -1,5 +1,5 @@
-// publish :: UInt64 -> String -> ByteArray -> EIO RedisError UInt64
-lean_obj_res l_hiredis_publish(uint64_t ctx, b_lean_obj_arg channel, b_lean_obj_arg message, lean_obj_arg w) {
+// publish :: Ctx -> String -> ByteArray -> EIO RedisError UInt64
+lean_obj_res l_hiredis_publish(b_lean_obj_arg ctx, b_lean_obj_arg channel, b_lean_obj_arg message, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* ch = lean_string_cstr(channel);
   size_t ch_len = strlen(ch);

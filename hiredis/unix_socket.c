@@ -25,7 +25,7 @@ lean_obj_res l_hiredis_connect_unix(b_lean_obj_arg path, lean_obj_arg w) {
         return lean_io_result_mk_error(error);
     }
 
-    return lean_io_result_mk_ok(lean_box_uint64((uint64_t)conn));
+    return lean_io_result_mk_ok(mk_redis_connection_external(conn));
 }
 
 // Connect via Unix socket with timeout (in milliseconds)
@@ -57,7 +57,7 @@ lean_obj_res l_hiredis_connect_unix_with_timeout(b_lean_obj_arg path, uint64_t t
         return lean_io_result_mk_error(error);
     }
 
-    return lean_io_result_mk_ok(lean_box_uint64((uint64_t)conn));
+    return lean_io_result_mk_ok(mk_redis_connection_external(conn));
 }
 
 // Connect via Unix socket without blocking (for async patterns)
@@ -85,5 +85,5 @@ lean_obj_res l_hiredis_connect_unix_nonblock(b_lean_obj_arg path, lean_obj_arg w
         return lean_io_result_mk_error(error);
     }
 
-    return lean_io_result_mk_ok(lean_box_uint64((uint64_t)conn));
+    return lean_io_result_mk_ok(mk_redis_connection_external(conn));
 }

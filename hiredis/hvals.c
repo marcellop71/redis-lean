@@ -1,6 +1,6 @@
-// hvals :: UInt64 -> ByteArray -> EIO Error (List ByteArray)
+// hvals :: Ctx -> ByteArray -> EIO Error (List ByteArray)
 // Get all values in a hash
-lean_obj_res l_hiredis_hvals(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+lean_obj_res l_hiredis_hvals(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

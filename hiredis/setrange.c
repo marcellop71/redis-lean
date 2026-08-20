@@ -1,7 +1,7 @@
-// setrange :: UInt64 -> ByteArray -> UInt64 -> ByteArray -> EIO Error UInt64
+// setrange :: Ctx -> ByteArray -> UInt64 -> ByteArray -> EIO Error UInt64
 // Overwrite part of a string at key starting at the specified offset
 // Returns the length of the string after modification
-lean_obj_res l_hiredis_setrange(uint64_t ctx, b_lean_obj_arg key, uint64_t offset, b_lean_obj_arg value, lean_obj_arg w) {
+lean_obj_res l_hiredis_setrange(b_lean_obj_arg ctx, b_lean_obj_arg key, uint64_t offset, b_lean_obj_arg value, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

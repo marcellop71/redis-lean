@@ -1,9 +1,9 @@
-// sscan :: UInt64 -> ByteArray -> UInt64 -> Option ByteArray -> Option UInt64 -> EIO Error (UInt64 × List ByteArray)
+// sscan :: Ctx -> ByteArray -> UInt64 -> Option ByteArray -> Option UInt64 -> EIO Error (UInt64 × List ByteArray)
 // Incrementally iterate set members
 // cursor: the cursor position (0 to start)
 // pattern: optional MATCH pattern
 // count: optional COUNT hint
-lean_obj_res l_hiredis_sscan(uint64_t ctx, b_lean_obj_arg key, uint64_t cursor, b_lean_obj_arg pattern_opt, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_sscan(b_lean_obj_arg ctx, b_lean_obj_arg key, uint64_t cursor, b_lean_obj_arg pattern_opt, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

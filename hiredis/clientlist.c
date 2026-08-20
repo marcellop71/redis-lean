@@ -1,6 +1,6 @@
-// clientlist :: UInt64 -> EIO Error ByteArray
+// clientlist :: Ctx -> EIO Error ByteArray
 // Get list of client connections
-lean_obj_res l_hiredis_clientlist(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_clientlist(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "CLIENT LIST");

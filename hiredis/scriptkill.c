@@ -1,6 +1,6 @@
-// scriptkill :: UInt64 -> EIO Error Unit
+// scriptkill :: Ctx -> EIO Error Unit
 // Kill the script currently in execution
-lean_obj_res l_hiredis_scriptkill(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_scriptkill(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "SCRIPT KILL");

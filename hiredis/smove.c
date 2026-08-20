@@ -1,6 +1,6 @@
-// smove :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> EIO Error Bool
+// smove :: Ctx -> ByteArray -> ByteArray -> ByteArray -> EIO Error Bool
 // Move a member from one set to another
-lean_obj_res l_hiredis_smove(uint64_t ctx, b_lean_obj_arg src, b_lean_obj_arg dst, b_lean_obj_arg member, lean_obj_arg w) {
+lean_obj_res l_hiredis_smove(b_lean_obj_arg ctx, b_lean_obj_arg src, b_lean_obj_arg dst, b_lean_obj_arg member, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(src);
   size_t s_len = lean_sarray_size(src);

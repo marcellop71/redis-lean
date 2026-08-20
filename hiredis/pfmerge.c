@@ -1,6 +1,6 @@
-// pfmerge :: UInt64 -> ByteArray -> List ByteArray -> EIO Error Unit
+// pfmerge :: Ctx -> ByteArray -> List ByteArray -> EIO Error Unit
 // Merge multiple HyperLogLog keys into a destination key
-lean_obj_res l_hiredis_pfmerge(uint64_t ctx, b_lean_obj_arg dest, b_lean_obj_arg sources, lean_obj_arg w) {
+lean_obj_res l_hiredis_pfmerge(b_lean_obj_arg ctx, b_lean_obj_arg dest, b_lean_obj_arg sources, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* d = (const char*)lean_sarray_cptr(dest);
   size_t d_len = lean_sarray_size(dest);

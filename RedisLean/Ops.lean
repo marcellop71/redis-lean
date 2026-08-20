@@ -14,11 +14,15 @@ namespace Redis
 class Ops (α: Type) [Codec α] (m : Type → Type) where
   -- operations on strings (general bytearray-based values in Redis terminology)
   set {β : Type} [Codec β] : α → β → m Unit
-  setnx {β : Type} [Codec β] : α → β → m Unit
-  setxx {β : Type} [Codec β] : α → β → m Unit
-  setex {β : Type} [Codec β] : α → β → Nat → m Unit
-  setexnx {β : Type} [Codec β] : α → β → Nat → m Unit
-  setexxx {β : Type} [Codec β] : α → β → Nat → m Unit
+  -- Conditional writes return whether the write actually happened. Losing an
+  -- NX race is a normal outcome, not an error.
+  setnx {β : Type} [Codec β] : α → β → m Bool
+  setxx {β : Type} [Codec β] : α → β → m Bool
+  -- expiry in MILLISECONDS (Redis PSETEX). The seconds-based `setex` wrappers
+  -- below are defined in terms of these.
+  psetex {β : Type} [Codec β] : α → β → Nat → m Unit
+  psetexnx {β : Type} [Codec β] : α → β → Nat → m Bool
+  psetexxx {β : Type} [Codec β] : α → β → Nat → m Bool
   get : α → m ByteArray
   getAs (β : Type) [Codec β] : α → m β
   append {β : Type} [Codec β] : α → β → m Nat
@@ -90,7 +94,7 @@ class Ops (α: Type) [Codec α] (m : Type → Type) where
   hgetall : α → m (List ByteArray)
   hdel {β : Type} [Codec β] : α → β → m Nat
   hexists {β : Type} [Codec β] : α → β → m Bool
-  hincrby {β : Type} [Codec β] : α → β → Int → m Nat
+  hincrby {β : Type} [Codec β] : α → β → Int → m Int
   hkeys : α → m (List ByteArray)
   hlen : α → m Nat
   hvals : α → m (List ByteArray)
@@ -160,12 +164,16 @@ class Ops (α: Type) [Codec α] (m : Type → Type) where
 -- implementation for the RedisM monad using FFI.hiredis
 instance [Codec α] : Ops α RedisM where
   -- String operations
-  set := fun k v => liftRedisEIO RedisCmd.SET (fun ctx => FFI.Internal.set ctx (Codec.enc k) (Codec.enc v) FFI.SetExistsOption.none.toUInt8)
+  set := fun k v => do
+    let _ ← liftRedisEIO RedisCmd.SET (fun ctx => FFI.Internal.set ctx (Codec.enc k) (Codec.enc v) FFI.SetExistsOption.none.toUInt8)
+    pure ()
   setnx := fun k v => liftRedisEIO RedisCmd.SET (fun ctx => FFI.Internal.set ctx (Codec.enc k) (Codec.enc v) FFI.SetExistsOption.nx.toUInt8)
   setxx := fun k v => liftRedisEIO RedisCmd.SET (fun ctx => FFI.Internal.set ctx (Codec.enc k) (Codec.enc v) FFI.SetExistsOption.xx.toUInt8)
-  setex := fun k v msec => liftRedisEIO RedisCmd.SETEX (fun ctx => FFI.Internal.setex ctx (Codec.enc k) (Codec.enc v) (UInt64.ofNat msec) FFI.SetExistsOption.none.toUInt8)
-  setexnx := fun k v msec => liftRedisEIO RedisCmd.SETEX (fun ctx => FFI.Internal.setex ctx (Codec.enc k) (Codec.enc v) (UInt64.ofNat msec) FFI.SetExistsOption.nx.toUInt8)
-  setexxx := fun k v msec => liftRedisEIO RedisCmd.SETEX (fun ctx => FFI.Internal.setex ctx (Codec.enc k) (Codec.enc v) (UInt64.ofNat msec) FFI.SetExistsOption.xx.toUInt8)
+  psetex := fun k v millis => do
+    let _ ← liftRedisEIO RedisCmd.SETEX (fun ctx => FFI.Internal.setex ctx (Codec.enc k) (Codec.enc v) (UInt64.ofNat millis) FFI.SetExistsOption.none.toUInt8)
+    pure ()
+  psetexnx := fun k v millis => liftRedisEIO RedisCmd.SETEX (fun ctx => FFI.Internal.setex ctx (Codec.enc k) (Codec.enc v) (UInt64.ofNat millis) FFI.SetExistsOption.nx.toUInt8)
+  psetexxx := fun k v millis => liftRedisEIO RedisCmd.SETEX (fun ctx => FFI.Internal.setex ctx (Codec.enc k) (Codec.enc v) (UInt64.ofNat millis) FFI.SetExistsOption.xx.toUInt8)
   get := fun k => do
     let tmp ← liftRedisEIO RedisCmd.GET (fun ctx => FFI.Internal.get ctx (Codec.enc k))
     return tmp
@@ -215,16 +223,16 @@ instance [Codec α] : Ops α RedisM where
   -- Numeric string operations
   incr := fun k => do
     let result ← liftRedisEIO RedisCmd.INCR (fun ctx => FFI.Internal.incr ctx (Codec.enc k))
-    return Int.ofNat result.toNat
+    return result.toInt
   incrBy := fun k n => do
     let result ← liftRedisEIO RedisCmd.INCRBY (fun ctx => FFI.Internal.incrby ctx (Codec.enc k) (Int64.ofInt n))
-    return Int.ofNat result.toNat
+    return result.toInt
   decr := fun k => do
     let result ← liftRedisEIO RedisCmd.DECR (fun ctx => FFI.Internal.decr ctx (Codec.enc k))
-    return Int.ofNat result.toNat
+    return result.toInt
   decrBy := fun k decrement => do
     let result ← liftRedisEIO RedisCmd.DECRBY (fun ctx => FFI.Internal.decrby ctx (Codec.enc k) (Int64.ofInt decrement))
-    return Int.ofNat result.toNat
+    return result.toInt
 
   -- Set operations
   sismember := fun k member => liftRedisEIO RedisCmd.SISMEMBER (fun ctx => FFI.Internal.sismember ctx (Codec.enc k) (Codec.enc member))
@@ -307,7 +315,7 @@ instance [Codec α] : Ops α RedisM where
   hexists := fun {β} [Codec β] k field => liftRedisEIO RedisCmd.HEXISTS (fun ctx => FFI.Internal.hexists ctx (Codec.enc k) (Codec.enc field))
   hincrby := fun {β} [Codec β] k field increment => do
     let result ← liftRedisEIO RedisCmd.HINCRBY (fun ctx => FFI.Internal.hincrby ctx (Codec.enc k) (Codec.enc field) (Int64.ofInt increment))
-    return result.toNat
+    return result.toInt
   hkeys := fun k => liftRedisEIO RedisCmd.HKEYS (fun ctx => FFI.Internal.hkeys ctx (Codec.enc k))
   hlen := fun k => do
     let result ← liftRedisEIO RedisCmd.HLEN (fun ctx => FFI.Internal.hlen ctx (Codec.enc k))
@@ -437,11 +445,21 @@ variable {α β : Type} [Codec α] [Codec β] [Ops α m]
 
 -- String operations
 def set (k : α) (v : β) : m Unit := Ops.set k v
-def setnx (k : α) (v : β) : m Unit := Ops.setnx k v
-def setxx (k : α) (v : β) : m Unit := Ops.setxx k v
-def setex (k : α) (v : β) (msec : Nat) : m Unit := Ops.setex k v msec
-def setexnx (k : α) (v : β) (msec : Nat) : m Unit := Ops.setexnx k v msec
-def setexxx (k : α) (v : β) (msec : Nat) : m Unit := Ops.setexxx k v msec
+/-- Set only if the key does not exist. Returns `true` if the write happened. -/
+def setnx (k : α) (v : β) : m Bool := Ops.setnx k v
+/-- Set only if the key already exists. Returns `true` if the write happened. -/
+def setxx (k : α) (v : β) : m Bool := Ops.setxx k v
+/-- Set a value with an expiry in **seconds**, as Redis `SETEX` does. -/
+def setex (k : α) (v : β) (seconds : Nat) : m Unit := Ops.psetex k v (seconds * 1000)
+/-- Atomic `SET key value NX PX ttl`. Returns `true` if the write happened --
+this is the correct primitive for acquiring a lock with a timeout. -/
+def setexnx (k : α) (v : β) (seconds : Nat) : m Bool := Ops.psetexnx k v (seconds * 1000)
+def setexxx (k : α) (v : β) (seconds : Nat) : m Bool := Ops.psetexxx k v (seconds * 1000)
+
+/-- Set a value with an expiry in **milliseconds**, as Redis `PSETEX` does. -/
+def psetex (k : α) (v : β) (millis : Nat) : m Unit := Ops.psetex k v millis
+def psetexnx (k : α) (v : β) (millis : Nat) : m Bool := Ops.psetexnx k v millis
+def psetexxx (k : α) (v : β) (millis : Nat) : m Bool := Ops.psetexxx k v millis
 def get (k : α) : m ByteArray := Ops.get k
 def getAs (β : Type) [Codec β] (k : α) : m β := Ops.getAs β k
 def append (k : α) (v : β) : m Nat := Ops.append k v
@@ -513,7 +531,7 @@ def hgetAs (γ : Type) [Codec γ] (k : α) (field : α) : m γ := Ops.hgetAs α 
 def hgetall (k : α) : m (List ByteArray) := Ops.hgetall k
 def hdel (k : α) (field : α) : m Nat := Ops.hdel k field
 def hexists (k : α) (field : α) : m Bool := Ops.hexists k field
-def hincrby (k : α) (field : α) (increment : Int) : m Nat := Ops.hincrby k field increment
+def hincrby (k : α) (field : α) (increment : Int) : m Int := Ops.hincrby k field increment
 def hkeys (k : α) : m (List ByteArray) := Ops.hkeys k
 def hlen (k : α) : m Nat := Ops.hlen k
 def hvals (k : α) : m (List ByteArray) := Ops.hvals k
@@ -617,12 +635,10 @@ def mset [Codec α] [Codec β] (pairs : List (α × β)) : RedisM Unit := do
   pairs.forM (fun (k, v) => set k v)
 
 -- DSL-style combinators
-
--- Operator for chaining Redis operations
-infixl:55 " >>= " => bind
-
-/-- Operator for sequencing Redis operations -/
-infixl:50 " >> " => fun m n => m >>= fun _ => n
+--
+-- `>>=` and `>>` are deliberately NOT redeclared here. Lean core already
+-- defines both, and shadowing them made every module that did `open Redis`
+-- fail to parse ordinary monadic code with "Ambiguous term".
 
 /-- When combinator for conditional execution -/
 def whenM (condition : RedisM Bool) (action : RedisM Unit) : RedisM Unit := do

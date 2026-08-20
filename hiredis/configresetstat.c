@@ -1,6 +1,6 @@
-// configresetstat :: UInt64 -> EIO Error Unit
+// configresetstat :: Ctx -> EIO Error Unit
 // Reset the stats returned by INFO
-lean_obj_res l_hiredis_configresetstat(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_configresetstat(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "CONFIG RESETSTAT");

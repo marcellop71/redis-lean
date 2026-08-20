@@ -1,6 +1,6 @@
-// psetex :: UInt64 -> ByteArray -> UInt64 -> ByteArray -> EIO Error Unit
+// psetex :: Ctx -> ByteArray -> UInt64 -> ByteArray -> EIO Error Unit
 // Set value with millisecond expiration (deprecated, use SET with PX)
-lean_obj_res l_hiredis_psetex(uint64_t ctx, b_lean_obj_arg key, uint64_t millis, b_lean_obj_arg value, lean_obj_arg w) {
+lean_obj_res l_hiredis_psetex(b_lean_obj_arg ctx, b_lean_obj_arg key, uint64_t millis, b_lean_obj_arg value, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

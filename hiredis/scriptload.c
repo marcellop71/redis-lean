@@ -1,6 +1,6 @@
-// scriptload :: UInt64 -> ByteArray -> EIO Error ByteArray
+// scriptload :: Ctx -> ByteArray -> EIO Error ByteArray
 // Load a script into the scripts cache (returns SHA1)
-lean_obj_res l_hiredis_scriptload(uint64_t ctx, b_lean_obj_arg script, lean_obj_arg w) {
+lean_obj_res l_hiredis_scriptload(b_lean_obj_arg ctx, b_lean_obj_arg script, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(script);
   size_t s_len = lean_sarray_size(script);

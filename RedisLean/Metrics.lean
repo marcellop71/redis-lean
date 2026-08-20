@@ -63,10 +63,56 @@ structure MetricsSnapshot where
   bytesRead : Nat
   deriving Repr
 
+/-- How many recent latency samples to keep per command, for percentiles.
+Running totals (count/sum/min/max) are exact and unbounded; only the sample
+window is capped. -/
+def maxLatencySamples : Nat := 1024
+
+/-- How many recent slow-command records and connection events to retain. -/
+def maxRetainedEvents : Nat := 256
+
+/-- Per-command latency state: exact running totals plus a bounded ring of
+recent samples.
+
+The previous version appended every latency to an unbounded `Array Nat` and
+re-sorted the whole history on each percentile query, so a long-lived process
+grew without limit and got steadily slower at reporting. -/
+structure LatencyAgg where
+  count : Nat := 0
+  sum : Nat := 0
+  min : Nat := 0
+  max : Nat := 0
+  /-- Ring buffer of the most recent samples; at most `maxLatencySamples`. -/
+  samples : Array Nat := #[]
+  /-- Next write position within `samples` once it is full. -/
+  cursor : Nat := 0
+  deriving Repr, Inhabited
+
+namespace LatencyAgg
+
+/-- Record one sample in microseconds. -/
+def push (a : LatencyAgg) (us : Nat) : LatencyAgg :=
+  let samples := if a.samples.size < maxLatencySamples
+    then a.samples.push us
+    else a.samples.set! a.cursor us
+  { count := a.count + 1
+    sum := a.sum + us
+    min := if a.count == 0 then us else Nat.min a.min us
+    max := Nat.max a.max us
+    samples := samples
+    cursor := if a.samples.size < maxLatencySamples then 0 else (a.cursor + 1) % maxLatencySamples }
+
+end LatencyAgg
+
+/-- Append to a bounded array, dropping the oldest entry when full. -/
+private def pushBounded (xs : Array α) (x : α) (cap : Nat) : Array α :=
+  let xs := xs.push x
+  if xs.size > cap then xs.extract (xs.size - cap) xs.size else xs
+
 -- metrics collection for Redis operations
 structure Metrics where
-  -- command latency buckets (command name -> array of latencies in microseconds)
-  latencyBuckets : IO.Ref (Std.HashMap String (Array Nat))
+  -- per-command latency aggregates (microseconds)
+  latencyBuckets : IO.Ref (Std.HashMap String LatencyAgg)
   -- command counters (command name -> count)
   commandCounts : IO.Ref (Std.HashMap String Nat)
   -- error counts (error type -> count)
@@ -115,15 +161,18 @@ def make : IO Metrics := do
 -- record latency for a command
 def recordLatency (m : Metrics) (cmd : String) (microseconds : Nat) : IO Unit := do
   m.latencyBuckets.modify fun h =>
-    h.insert cmd ((h.getD cmd #[]).push microseconds)
+    h.insert cmd ((h.getD cmd {}).push microseconds)
   m.commandCounts.modify fun h =>
     h.insert cmd ((h.getD cmd 0) + 1)
   -- Check if this is a slow command
   let threshold ← m.slowThresholdMs.get
   if microseconds > threshold * 1000 then
-    m.slowCommands.modify (·.push (cmd, microseconds))
+    m.slowCommands.modify (pushBounded · (cmd, microseconds) maxRetainedEvents)
 
--- record an error
+/-- Record an error occurrence.
+
+`errorType` must be a low-cardinality label -- use `Redis.Error.kind`, not
+`toString`, or the map grows one entry per distinct key or server message. -/
 def recordError (m : Metrics) (errorType : String) : IO Unit := do
   m.errorCounts.modify fun h =>
     h.insert errorType ((h.getD errorType 0) + 1)
@@ -132,8 +181,7 @@ def recordError (m : Metrics) (errorType : String) : IO Unit := do
 def recordEvent (m : Metrics) (eventType : String) : IO Unit := do
   let now ← IO.monoNanosNow
   let nowUs := now / 1000
-  m.connectionEvents.modify fun events =>
-    events.push (eventType, nowUs)
+  m.connectionEvents.modify (pushBounded · (eventType, nowUs) maxRetainedEvents)
 
 -- record bytes written
 def recordBytesWritten (m : Metrics) (bytes : Nat) : IO Unit := do
@@ -192,21 +240,20 @@ def getLatencyStats (m : Metrics) (cmd : String) : IO (Option LatencyStats) := d
   let buckets ← m.latencyBuckets.get
   match buckets.get? cmd with
   | none => return none
-  | some times =>
-    if times.size == 0 then return none
+  | some agg =>
+    if agg.count == 0 then return none
     else
-      let min := times.foldl Nat.min times[0]!
-      let max := times.foldl Nat.max 0
-      let sum := times.foldl (·+·) 0
-      let avg := (Float.ofNat sum / Float.ofNat times.size)
-      return some { count := times.size, min, max, avg }
+      return some { count := agg.count, min := agg.min, max := agg.max,
+                    avg := Float.ofNat agg.sum / Float.ofNat agg.count }
 
 -- calculate percentile latency
+/-- Percentile over the retained sample window (at most `maxLatencySamples`
+per command), not over all history. -/
 def getPercentileLatency (m : Metrics) (percentile : Nat) : IO Nat := do
   let buckets ← m.latencyBuckets.get
   let mut allLatencies : Array Nat := #[]
-  for (_, times) in buckets.toList do
-    allLatencies := allLatencies ++ times
+  for (_, agg) in buckets.toList do
+    allLatencies := allLatencies ++ agg.samples
   if allLatencies.size == 0 then return 0
   let sorted := allLatencies.qsort (· < ·)
   let idx := (sorted.size * percentile) / 100
@@ -293,9 +340,9 @@ def snapshot (m : Metrics) : IO MetricsSnapshot := do
   let buckets ← m.latencyBuckets.get
   let mut totalLatency : Nat := 0
   let mut latencyCount : Nat := 0
-  for (_, times) in buckets.toList do
-    totalLatency := totalLatency + times.foldl (·+·) 0
-    latencyCount := latencyCount + times.size
+  for (_, agg) in buckets.toList do
+    totalLatency := totalLatency + agg.sum
+    latencyCount := latencyCount + agg.count
   let avgLatencyMs := if latencyCount > 0
     then Float.ofNat totalLatency / Float.ofNat latencyCount / 1000.0
     else 0.0
@@ -312,6 +359,18 @@ def snapshot (m : Metrics) : IO MetricsSnapshot := do
     bytesRead
   }
 
+/-- Escape a Prometheus label value: backslash, double quote and newline.
+
+Label values reach here from command names and error kinds; without escaping a
+stray quote produces an exposition body the scraper rejects. -/
+private def escapeLabel (s : String) : String :=
+  s.foldl (init := "") fun acc c =>
+    match c with
+    | '\\' => acc ++ "\\\\"
+    | '"'  => acc ++ "\\\""
+    | '\n' => acc ++ "\\n"
+    | c    => acc.push c
+
 -- export metrics in Prometheus format
 def toPrometheus (m : Metrics) : IO String := do
   let mut lines : Array String := #[]
@@ -321,14 +380,14 @@ def toPrometheus (m : Metrics) : IO String := do
   lines := lines.push "# HELP redis_command_total Total number of Redis commands executed"
   lines := lines.push "# TYPE redis_command_total counter"
   for (cmd, count) in counts.toList do
-    lines := lines.push s!"redis_command_total\{command=\"{cmd}\"} {count}"
+    lines := lines.push s!"redis_command_total\{command=\"{escapeLabel cmd}\"} {count}"
 
   -- Error counts
   let errors ← m.errorCounts.get
   lines := lines.push "# HELP redis_error_total Total number of Redis errors"
   lines := lines.push "# TYPE redis_error_total counter"
   for (errType, count) in errors.toList do
-    lines := lines.push s!"redis_error_total\{error_type=\"{errType}\"} {count}"
+    lines := lines.push s!"redis_error_total\{error_type=\"{escapeLabel errType}\"} {count}"
 
   -- Latency stats
   lines := lines.push "# HELP redis_command_latency_microseconds Command latency in microseconds"
@@ -338,15 +397,18 @@ def toPrometheus (m : Metrics) : IO String := do
     let stats ← getLatencyStats m cmd
     match stats with
     | some s =>
-      lines := lines.push s!"redis_command_latency_microseconds\{command=\"{cmd}\",quantile=\"0.5\"} {s.avg}"
-      lines := lines.push s!"redis_command_latency_microseconds\{command=\"{cmd}\",quantile=\"1\"} {s.max}"
-      lines := lines.push s!"redis_command_latency_microseconds_count\{command=\"{cmd}\"} {s.count}"
+      lines := lines.push s!"redis_command_latency_microseconds\{command=\"{escapeLabel cmd}\",quantile=\"0.5\"} {s.avg}"
+      lines := lines.push s!"redis_command_latency_microseconds\{command=\"{escapeLabel cmd}\",quantile=\"1\"} {s.max}"
+      lines := lines.push s!"redis_command_latency_microseconds_count\{command=\"{escapeLabel cmd}\"} {s.count}"
     | none => pure ()
 
   -- Bytes transferred
   let bytesWritten ← m.bytesWritten.get
   let bytesRead ← m.bytesRead.get
-  lines := lines.push "# HELP redis_bytes_written_total Total bytes written to Redis"
+  -- NOTE: the byte counters are caller-driven. The library does not populate
+  -- them automatically (the FFI does not surface wire sizes), so these stay at
+  -- zero unless you call `recordBytesWritten`/`recordBytesRead` yourself.
+  lines := lines.push "# HELP redis_bytes_written_total Total bytes written to Redis (caller-recorded)"
   lines := lines.push "# TYPE redis_bytes_written_total counter"
   lines := lines.push s!"redis_bytes_written_total {bytesWritten}"
   lines := lines.push "# HELP redis_bytes_read_total Total bytes read from Redis"

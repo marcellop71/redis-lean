@@ -1,7 +1,7 @@
-// ttl :: UInt64 -> ByteArray -> EIO RedisError Int64
+// ttl :: Ctx -> ByteArray -> EIO RedisError Int64
 // Throws noExpiryDefinedError if the key exists but has no associated expire
 // Throws keyNotFoundError if the key does not exist
-lean_obj_res l_hiredis_ttl(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+lean_obj_res l_hiredis_ttl(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);
@@ -22,14 +22,14 @@ lean_obj_res l_hiredis_ttl(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
     // Check if key does not exist (-2)
     if (result == -2) {
       freeReplyObject(r);
-      lean_object* error = mk_redis_key_not_found_error(k);
+      lean_object* error = mk_redis_key_not_found_error_n(k, k_len);
       return lean_io_result_mk_error(error);
     }
     
     // Check if key exists but has no expiry (-1)
     if (result == -1) {
       freeReplyObject(r);
-      lean_object* error = mk_redis_no_expiry_defined_error(k);
+      lean_object* error = mk_redis_no_expiry_defined_error_n(k, k_len);
       return lean_io_result_mk_error(error);
     }
   } else {
@@ -44,11 +44,11 @@ lean_obj_res l_hiredis_ttl(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
   return lean_io_result_mk_ok(lean_box_uint64(result));
 }
 
-// pttl :: UInt64 -> ByteArray -> EIO RedisError Int64
+// pttl :: Ctx -> ByteArray -> EIO RedisError Int64
 // Returns the remaining time to live of a key that has a timeout (in milliseconds)
 // Throws noExpiryDefinedError if the key exists but has no associated expire
 // Throws keyNotFoundError if the key does not exist
-lean_obj_res l_hiredis_pttl(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+lean_obj_res l_hiredis_pttl(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);
@@ -69,14 +69,14 @@ lean_obj_res l_hiredis_pttl(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
     // Check if key does not exist (-2)
     if (result == -2) {
       freeReplyObject(r);
-      lean_object* error = mk_redis_key_not_found_error(k);
+      lean_object* error = mk_redis_key_not_found_error_n(k, k_len);
       return lean_io_result_mk_error(error);
     }
     
     // Check if key exists but has no expiry (-1)
     if (result == -1) {
       freeReplyObject(r);
-      lean_object* error = mk_redis_no_expiry_defined_error(k);
+      lean_object* error = mk_redis_no_expiry_defined_error_n(k, k_len);
       return lean_io_result_mk_error(error);
     }
   } else {

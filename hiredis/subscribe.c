@@ -1,5 +1,5 @@
-// subscribe :: UInt64 -> String -> EIO RedisError Bool
-lean_obj_res l_hiredis_subscribe(uint64_t ctx, b_lean_obj_arg channel, lean_obj_arg w) {
+// subscribe :: Ctx -> String -> EIO RedisError Bool
+lean_obj_res l_hiredis_subscribe(b_lean_obj_arg ctx, b_lean_obj_arg channel, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* ch = lean_string_cstr(channel);
   

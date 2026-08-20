@@ -1,6 +1,6 @@
-// select :: UInt64 -> UInt64 -> EIO Error Unit
+// select :: Ctx -> UInt64 -> EIO Error Unit
 // Select the Redis logical database
-lean_obj_res l_hiredis_select(uint64_t ctx, uint64_t index, lean_obj_arg w) {
+lean_obj_res l_hiredis_select(b_lean_obj_arg ctx, uint64_t index, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   char index_str[32];

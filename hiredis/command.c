@@ -70,7 +70,7 @@ static int parse_command_args(const char* command, char*** argv_out, size_t** ar
             free(argvlen);
             return -1;
           }
-          strncpy(argv[arg_idx], arg_start, len);
+          memcpy(argv[arg_idx], arg_start, len);
           argv[arg_idx][len] = '\0';
           argvlen[arg_idx] = len;
           arg_idx++;
@@ -89,7 +89,7 @@ static int parse_command_args(const char* command, char*** argv_out, size_t** ar
           free(argvlen);
           return -1;
         }
-        strncpy(argv[arg_idx], arg_start, len);
+        memcpy(argv[arg_idx], arg_start, len);
         argv[arg_idx][len] = '\0';
         argvlen[arg_idx] = len;
         arg_idx++;
@@ -115,15 +115,17 @@ static int parse_command_args(const char* command, char*** argv_out, size_t** ar
       free(argvlen);
       return -1;
     }
-    strncpy(argv[arg_idx], arg_start, len);
+    memcpy(argv[arg_idx], arg_start, len);
     argv[arg_idx][len] = '\0';
     argvlen[arg_idx] = len;
     arg_idx++;
-  
+  }
+
+  // Reached whether or not the string ended mid-argument: a trailing space or a
+  // quoted final argument leaves in_arg == 0 and skips the block above.
   *argv_out = argv;
   *argvlen_out = argvlen;
   return arg_idx;
-  }
 }
 
 // Helper function to free parsed arguments
@@ -136,10 +138,10 @@ static void free_parsed_args(char** argv, int argc) {
   }
 }
 
-// command :: UInt64 -> String -> EIO RedisError ByteArray
+// command :: Ctx -> String -> EIO RedisError ByteArray
 // Generic command function that accepts a command string and returns the raw reply as ByteArray
 // This allows execution of arbitrary Redis commands
-lean_obj_res l_hiredis_command(uint64_t ctx, b_lean_obj_arg command_str, lean_obj_arg w) {
+lean_obj_res l_hiredis_command(b_lean_obj_arg ctx, b_lean_obj_arg command_str, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* cmd = lean_string_cstr(command_str);
   
@@ -205,40 +207,71 @@ lean_obj_res l_hiredis_command(uint64_t ctx, b_lean_obj_arg command_str, lean_ob
       }
       
     case REDIS_REPLY_ARRAY: {
-      // For arrays, create a simple text representation
-      // Format: "[elem1,elem2,...]" 
-      char* array_str = (char*)malloc(4096); // Start with reasonable size
-      if (!array_str) {
-        freeReplyObject(r);
-        lean_object* error = mk_redis_null_reply_error("memory allocation failed");
-    return lean_io_result_mk_error(error);
-      }
-      
-      int pos = 0;
-      pos += snprintf(array_str + pos, 4096 - pos, "[");
-      
-      for (size_t i = 0; i < r->elements && pos < 4090; i++) {
-        if (i > 0) {
-          pos += snprintf(array_str + pos, 4096 - pos, ",");
-        }
-        
+      // Text representation: "[elem1,elem2,...]"
+      //
+      // Sized exactly first, then filled -- the same two-pass shape as
+      // calc_reply_size/serialize_reply in xread.c. The previous version
+      // accumulated snprintf's *would-have-written* return value into a fixed
+      // 4096-byte buffer, so a single long element pushed the write offset past
+      // the end of the allocation and made the remaining size argument
+      // underflow, giving an out-of-bounds write and a longer out-of-bounds
+      // read in the final memcpy. Both passes must classify elements
+      // identically -- keep the two switches in step.
+      char numbuf[32];
+      size_t total = 2; // '[' and ']'
+      for (size_t i = 0; i < r->elements; i++) {
         redisReply* elem = r->element[i];
-        if (elem->type == REDIS_REPLY_STRING && elem->str) {
-          pos += snprintf(array_str + pos, 4096 - pos, "\"%.*s\"", (int)elem->len, elem->str);
-        } else if (elem->type == REDIS_REPLY_INTEGER) {
-          pos += snprintf(array_str + pos, 4096 - pos, "%lld", elem->integer);
-        } else if (elem->type == REDIS_REPLY_NIL) {
-          pos += snprintf(array_str + pos, 4096 - pos, "null");
-        } else {
-          pos += snprintf(array_str + pos, 4096 - pos, "?");
+        if (i > 0) total += 1; // ','
+        switch (elem->type) {
+          case REDIS_REPLY_STRING:
+          case REDIS_REPLY_STATUS:
+            total += 2 + (elem->str ? elem->len : 0); // surrounding quotes
+            break;
+          case REDIS_REPLY_INTEGER:
+            total += (size_t)snprintf(numbuf, sizeof(numbuf), "%lld", elem->integer);
+            break;
+          case REDIS_REPLY_NIL:
+            total += 4; // "null"
+            break;
+          default:
+            total += 1; // "?"
+            break;
         }
       }
 
-      pos += snprintf(array_str + pos, 4096 - pos, "]");
-      
-      result = lean_alloc_sarray(1, pos, pos);
-      memcpy(lean_sarray_cptr(result), array_str, pos);
-      free(array_str);
+      result = lean_alloc_sarray(1, total, total);
+      uint8_t* out = lean_sarray_cptr(result);
+      size_t pos = 0;
+      out[pos++] = '[';
+      for (size_t i = 0; i < r->elements; i++) {
+        redisReply* elem = r->element[i];
+        if (i > 0) out[pos++] = ',';
+        switch (elem->type) {
+          case REDIS_REPLY_STRING:
+          case REDIS_REPLY_STATUS:
+            out[pos++] = '"';
+            if (elem->str) {
+              memcpy(out + pos, elem->str, elem->len);
+              pos += elem->len;
+            }
+            out[pos++] = '"';
+            break;
+          case REDIS_REPLY_INTEGER: {
+            int n = snprintf(numbuf, sizeof(numbuf), "%lld", elem->integer);
+            memcpy(out + pos, numbuf, (size_t)n);
+            pos += (size_t)n;
+            break;
+          }
+          case REDIS_REPLY_NIL:
+            memcpy(out + pos, "null", 4);
+            pos += 4;
+            break;
+          default:
+            out[pos++] = '?';
+            break;
+        }
+      }
+      out[pos++] = ']';
       break;
     }
     

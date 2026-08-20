@@ -21,15 +21,21 @@ def ex0 : RedisM Unit := do
 
   try
     Log.info s!"setnx {key1} → {value1} [set if key does not exist]"
-    setnx key1 value1
-    Log.info s!"✓ success"
+    let written ← setnx key1 value1
+    if written then
+      Log.info s!"✓ written"
+    else
+      Log.info s!"· skipped: key already exists"
   catch e =>
     Log.error s!"✗ error {e}"
 
   try
     Log.info s!"setxx {key1} → {value1} [set if key does exist]"
-    setxx key1 value1
-    Log.info s!"✓ success"
+    let written ← setxx key1 value1
+    if written then
+      Log.info s!"✓ written"
+    else
+      Log.info s!"· skipped: key does not exist"
   catch e =>
     Log.error s!"✗ error {e}"
 

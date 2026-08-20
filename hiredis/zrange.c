@@ -1,7 +1,7 @@
-// zrange :: UInt64 -> ByteArray -> Int64 -> Int64 -> EIO RedisError (List ByteArray)
+// zrange :: Ctx -> ByteArray -> Int64 -> Int64 -> EIO RedisError (List ByteArray)
 // Get a range of elements from the sorted set stored at key, from start to stop (inclusive). Returns a list of members
 // NOTE: Redis returns an error if the value stored at key is not a sorted set
-lean_obj_res l_hiredis_zrange(uint64_t ctx, b_lean_obj_arg key, int64_t start, int64_t stop, lean_obj_arg w) {
+lean_obj_res l_hiredis_zrange(b_lean_obj_arg ctx, b_lean_obj_arg key, int64_t start, int64_t stop, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

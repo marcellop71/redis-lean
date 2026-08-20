@@ -1,6 +1,6 @@
-// zrevrangebyscore :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> Bool -> Option UInt64 -> Option UInt64 -> EIO Error (List ByteArray)
+// zrevrangebyscore :: Ctx -> ByteArray -> ByteArray -> ByteArray -> Bool -> Option UInt64 -> Option UInt64 -> EIO Error (List ByteArray)
 // Get members with scores between max and min (high to low)
-lean_obj_res l_hiredis_zrevrangebyscore(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg max, b_lean_obj_arg min, uint8_t withscores, b_lean_obj_arg offset_opt, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_zrevrangebyscore(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg max, b_lean_obj_arg min, uint8_t withscores, b_lean_obj_arg offset_opt, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

@@ -1,8 +1,8 @@
-// lcs :: UInt64 -> ByteArray -> ByteArray -> Bool -> Bool -> EIO Error ByteArray
+// lcs :: Ctx -> ByteArray -> ByteArray -> Bool -> Bool -> EIO Error ByteArray
 // Find longest common substring between two keys
 // getLen: if true, return length only
 // getIdx: if true, return indices of matches
-lean_obj_res l_hiredis_lcs(uint64_t ctx, b_lean_obj_arg key1, b_lean_obj_arg key2, uint8_t getLen, uint8_t getIdx, lean_obj_arg w) {
+lean_obj_res l_hiredis_lcs(b_lean_obj_arg ctx, b_lean_obj_arg key1, b_lean_obj_arg key2, uint8_t getLen, uint8_t getIdx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k1 = (const char*)lean_sarray_cptr(key1);
   size_t k1_len = lean_sarray_size(key1);

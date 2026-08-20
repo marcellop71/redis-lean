@@ -1,6 +1,6 @@
-// zmscore :: UInt64 -> ByteArray -> List ByteArray -> EIO Error (List (Option Float))
+// zmscore :: Ctx -> ByteArray -> List ByteArray -> EIO Error (List (Option Float))
 // Get the scores of multiple members in a sorted set
-lean_obj_res l_hiredis_zmscore(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg members, lean_obj_arg w) {
+lean_obj_res l_hiredis_zmscore(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg members, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

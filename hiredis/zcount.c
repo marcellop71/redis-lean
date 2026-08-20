@@ -1,7 +1,7 @@
-// zcount :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> EIO Error UInt64
+// zcount :: Ctx -> ByteArray -> ByteArray -> ByteArray -> EIO Error UInt64
 // Count members with scores in the given range
 // min/max can be "-inf", "+inf", or numbers (optionally with "(" for exclusive)
-lean_obj_res l_hiredis_zcount(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg min, b_lean_obj_arg max, lean_obj_arg w) {
+lean_obj_res l_hiredis_zcount(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg min, b_lean_obj_arg max, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

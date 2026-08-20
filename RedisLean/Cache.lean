@@ -84,6 +84,39 @@ def refreshCache [Codec α] (key : String) (ttlSeconds : Nat) (compute : IO α) 
   setex key (Codec.enc v) ttlSeconds
   return v
 
+/-! ## Distributed locks
+
+A lock is acquired with a single atomic `SET key token NX PX ttl`, so the value
+and its expiry are set together -- there is no window in which a crash leaves an
+un-expiring lock behind.
+
+Each holder writes a unique token and releases with a compare-and-delete script,
+so a holder whose lock has already expired cannot delete the lock a *different*
+holder has since taken. -/
+
+/-- Compare-and-delete: only removes the key if it still holds our token. -/
+private def releaseLockScript : String :=
+  "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end"
+
+/-- Acquire `lockKey` for `ttlSeconds`, writing `token` as the holder's identity.
+Returns `true` if the lock was taken. -/
+def acquireLock (lockKey : String) (token : String) (ttlSeconds : Nat) : RedisM Bool :=
+  setexnx (α := String) (β := String) lockKey token ttlSeconds
+
+/-- Release `lockKey`, but only if `token` still holds it.
+Returns `true` if this call actually released the lock. -/
+def releaseLock (lockKey : String) (token : String) : RedisM Bool := do
+  let raw ← liftRedisEIO RedisCmd.EVAL (fun ctx =>
+    FFI.Internal.eval ctx (String.toUTF8 releaseLockScript)
+      [String.toUTF8 lockKey] [String.toUTF8 token])
+  return (String.fromUTF8? raw).getD "0" != "0"
+
+/-- A token unique to this holder, for use with `acquireLock`. -/
+def freshLockToken : IO String := do
+  let now ← IO.monoNanosNow
+  let salt ← IO.rand 0 999999999
+  return s!"{now}-{salt}"
+
 /-- Get or compute with lock - prevents cache stampede by using SETNX as a lock.
     Only one caller will compute the value, others will wait and retry. -/
 def getOrComputeWithLock [Codec α]
@@ -106,8 +139,9 @@ def getOrComputeWithLock [Codec α]
 where
   computeWithLock (key lockKey : String) (ttlSeconds lockTimeoutSeconds : Nat)
       (compute : IO α) (maxRetries retryDelayMs : Nat) : RedisM α := do
-    -- Try to acquire lock
-    let lockAcquired ← acquireLock lockKey lockTimeoutSeconds
+    -- One atomic SET .. NX PX: losing the race returns false rather than throwing.
+    let token ← freshLockToken
+    let lockAcquired ← acquireLock lockKey token lockTimeoutSeconds
     if lockAcquired then
       try
         -- Double-check cache after acquiring lock
@@ -116,29 +150,20 @@ where
           let bs ← get key
           match Codec.dec bs with
           | .ok v =>
-            let _ ← invalidate lockKey
+            let _ ← releaseLock lockKey token
             return v
           | .error _ => pure ()
         -- Compute and cache
         let v ← compute
         setex key (Codec.enc v) ttlSeconds
-        let _ ← invalidate lockKey
+        let _ ← releaseLock lockKey token
         return v
       catch e =>
-        let _ ← invalidate lockKey
+        let _ ← releaseLock lockKey token
         throw e
     else
       -- Wait and retry
       waitAndRetry key lockKey ttlSeconds lockTimeoutSeconds compute maxRetries retryDelayMs 0
-
-  acquireLock (lockKey : String) (timeoutSeconds : Nat) : RedisM Bool := do
-    -- Use SETNX with expiration
-    let lockExists ← existsKey lockKey
-    if lockExists then return false
-    else
-      setnx lockKey "locked"
-      let _ ← expire lockKey timeoutSeconds
-      return true
 
   waitAndRetry (key lockKey : String) (ttlSeconds lockTimeoutSeconds : Nat)
       (compute : IO α) (maxRetries retryDelayMs currentRetry : Nat) : RedisM α := do

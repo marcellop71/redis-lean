@@ -1,6 +1,6 @@
-// hget :: UInt64 -> ByteArray -> ByteArray -> EIO RedisError ByteArray
+// hget :: Ctx -> ByteArray -> ByteArray -> EIO RedisError ByteArray
 // Redis returns an error if the value stored at key is not a hash
-lean_obj_res l_hiredis_hget(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg field, lean_obj_arg w) {
+lean_obj_res l_hiredis_hget(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg field, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);
@@ -18,7 +18,7 @@ lean_obj_res l_hiredis_hget(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg fie
 
   lean_object* out;
   if (r->type == REDIS_REPLY_NIL) {
-    lean_object* error = mk_redis_key_not_found_error(k);
+    lean_object* error = mk_redis_key_not_found_error_n(k, k_len);
     freeReplyObject(r);
     return lean_io_result_mk_error(error);
   } else if (r->type == REDIS_REPLY_STRING && r->str) {

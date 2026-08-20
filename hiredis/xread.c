@@ -1,4 +1,4 @@
-// xread :: UInt64 -> List (ByteArray × ByteArray) -> Option UInt64 -> Option UInt64 -> EIO RedisError (List (ByteArray × List (ByteArray × List (ByteArray × ByteArray))))
+// xread :: Ctx -> List (ByteArray × ByteArray) -> Option UInt64 -> Option UInt64 -> EIO RedisError (List (ByteArray × List (ByteArray × List (ByteArray × ByteArray))))
 // Read from streams: key-id pairs, optional count, optional block timeout
 
 #include <string.h>
@@ -61,7 +61,7 @@ static size_t serialize_reply(redisReply* reply, char* buf, size_t offset) {
   }
 }
 
-lean_obj_res l_hiredis_xread(uint64_t ctx, b_lean_obj_arg streams, b_lean_obj_arg count_opt, b_lean_obj_arg block_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_xread(b_lean_obj_arg ctx, b_lean_obj_arg streams, b_lean_obj_arg count_opt, b_lean_obj_arg block_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count stream-id pairs

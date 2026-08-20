@@ -66,16 +66,20 @@ static lean_object* mk_redis_unexpected_reply_type_error(const char* msg) {
   return redis_err;
 }
 
-static lean_object* mk_redis_key_not_found_error(const char* key) {
-  lean_object* key_obj = lean_mk_string(key);
-  lean_object* redis_err = lean_alloc_ctor(5, 1, 0); // keyNotFoundError constructor (shifted from 4 to 5)
+// Key-carrying errors take an explicit length. Redis keys arrive as Lean
+// ByteArrays, whose backing buffer is exactly `len` bytes and is NOT
+// NUL-terminated, so a `lean_mk_string` on `lean_sarray_cptr` would read past
+// the end of the object. There is deliberately no NUL-terminated variant.
+static lean_object* mk_redis_key_not_found_error_n(const char* key, size_t len) {
+  lean_object* key_obj = lean_mk_string_from_bytes(key, len);
+  lean_object* redis_err = lean_alloc_ctor(5, 1, 0); // keyNotFoundError
   lean_ctor_set(redis_err, 0, key_obj);
   return redis_err;
 }
 
-static lean_object* mk_redis_no_expiry_defined_error(const char* key) {
-  lean_object* key_obj = lean_mk_string(key);
-  lean_object* redis_err = lean_alloc_ctor(6, 1, 0); // noExpiryDefinedError constructor (shifted from 5 to 6)
+static lean_object* mk_redis_no_expiry_defined_error_n(const char* key, size_t len) {
+  lean_object* key_obj = lean_mk_string_from_bytes(key, len);
+  lean_object* redis_err = lean_alloc_ctor(6, 1, 0); // noExpiryDefinedError
   lean_ctor_set(redis_err, 0, key_obj);
   return redis_err;
 }

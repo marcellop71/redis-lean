@@ -292,19 +292,12 @@ def claimJob (config : DistConfig) (workerId : String) : RedisM (Option Job) := 
       let depsOk ← dependenciesSatisfied config jobId
       if !depsOk then continue
 
-      -- Try to acquire lock
+      -- Try to acquire the lock: one atomic SET .. NX PX, so the claim and its
+      -- expiry are set together and losing the race just moves to the next
+      -- candidate instead of throwing out of the whole loop.
       let lockKey := distLockKey config.keyPrefix jobId
-      let _ ← setnx lockKey workerId
-
-      -- Check if we got the lock by verifying the value
-      let lockValue ← get lockKey
-      match String.fromUTF8? lockValue with
-      | some v =>
-        if v != workerId then continue
-      | none => continue
-
-      -- Set lock expiry
-      let _ ← expire lockKey config.lockTimeoutSeconds
+      let gotLock ← setexnx lockKey workerId config.lockTimeoutSeconds
+      if !gotLock then continue
 
       -- Load and update job
       let jobKey := distJobStatusKey config.keyPrefix jobId

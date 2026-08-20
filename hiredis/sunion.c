@@ -1,6 +1,6 @@
-// sunion :: UInt64 -> List ByteArray -> EIO Error (List ByteArray)
+// sunion :: Ctx -> List ByteArray -> EIO Error (List ByteArray)
 // Get the union of all given sets
-lean_obj_res l_hiredis_sunion(uint64_t ctx, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_sunion(b_lean_obj_arg ctx, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   size_t num_keys = 0;

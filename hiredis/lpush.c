@@ -1,6 +1,6 @@
-// lpush :: UInt64 -> ByteArray -> List ByteArray -> EIO Error UInt64
+// lpush :: Ctx -> ByteArray -> List ByteArray -> EIO Error UInt64
 // Push elements to the head of a list, returns new length
-lean_obj_res l_hiredis_lpush(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg elements, lean_obj_arg w) {
+lean_obj_res l_hiredis_lpush(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg elements, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

@@ -1,9 +1,9 @@
-// blmove :: UInt64 -> ByteArray -> ByteArray -> UInt8 -> UInt8 -> Float -> EIO Error (Option ByteArray)
+// blmove :: Ctx -> ByteArray -> ByteArray -> UInt8 -> UInt8 -> Float -> EIO Error (Option ByteArray)
 // Blocking move element from source to destination
 // srcDir: 0 = LEFT, 1 = RIGHT
 // dstDir: 0 = LEFT, 1 = RIGHT
 // timeout: seconds to wait (0 = wait indefinitely)
-lean_obj_res l_hiredis_blmove(uint64_t ctx, b_lean_obj_arg src, b_lean_obj_arg dst, uint8_t srcDir, uint8_t dstDir, double timeout, lean_obj_arg w) {
+lean_obj_res l_hiredis_blmove(b_lean_obj_arg ctx, b_lean_obj_arg src, b_lean_obj_arg dst, uint8_t srcDir, uint8_t dstDir, double timeout, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(src);
   size_t s_len = lean_sarray_size(src);

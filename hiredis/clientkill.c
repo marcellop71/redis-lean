@@ -1,6 +1,6 @@
-// clientkill :: UInt64 -> ByteArray -> ByteArray -> EIO Error UInt64
+// clientkill :: Ctx -> ByteArray -> ByteArray -> EIO Error UInt64
 // Kill client connections (filterType: ID, ADDR, TYPE, USER, etc., filterValue: the value)
-lean_obj_res l_hiredis_clientkill(uint64_t ctx, b_lean_obj_arg filter_type, b_lean_obj_arg filter_value, lean_obj_arg w) {
+lean_obj_res l_hiredis_clientkill(b_lean_obj_arg ctx, b_lean_obj_arg filter_type, b_lean_obj_arg filter_value, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* ft = (const char*)lean_sarray_cptr(filter_type);
   size_t ft_len = lean_sarray_size(filter_type);

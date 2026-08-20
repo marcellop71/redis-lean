@@ -5,9 +5,9 @@ typedef enum {
   SET_EXISTS_OPTION_XX = 2
 } set_exists_option_t;
 
-// set :: UInt64 -> ByteArray -> ByteArray -> UInt8 -> EIO RedisError Unit
+// set :: Ctx -> ByteArray -> ByteArray -> UInt8 -> EIO RedisError Unit
 // exists_option: 0 = none, 1 = NX (only if not exists), 2 = XX (only if exists)
-lean_obj_res l_hiredis_set(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg val, uint8_t exists_option, lean_obj_arg w) {
+lean_obj_res l_hiredis_set(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg val, uint8_t exists_option, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);
@@ -46,12 +46,13 @@ lean_obj_res l_hiredis_set(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg val,
 
   if (r->type == REDIS_REPLY_STATUS && r->str && strcmp(r->str, "OK") == 0) {
     freeReplyObject(r);
-    return lean_io_result_mk_ok(lean_box(0));
+    return lean_io_result_mk_ok(lean_box(1)); // true: the write happened
   } else if (r->type == REDIS_REPLY_NIL) {
-    // When NX or XX condition is not met, Redis returns NIL - treat as error
+    // An unmet NX/XX condition is a normal outcome, not a failure. Reporting it
+    // as `false` is what makes NX usable as a lock: the caller can react to
+    // losing the race instead of having an exception thrown through it.
     freeReplyObject(r);
-    lean_object* error = mk_redis_null_reply_error("SET condition not met (NX/XX)");
-    return lean_io_result_mk_error(error);
+    return lean_io_result_mk_ok(lean_box(0)); // false: condition not met
   } else if (r->type == REDIS_REPLY_ERROR && r->str) {
     lean_object* error = mk_redis_reply_error(r->str);
     freeReplyObject(r);

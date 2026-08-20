@@ -1,6 +1,6 @@
-// eval :: UInt64 -> ByteArray -> List ByteArray -> List ByteArray -> EIO Error ByteArray
+// eval :: Ctx -> ByteArray -> List ByteArray -> List ByteArray -> EIO Error ByteArray
 // Execute a Lua script server side
-lean_obj_res l_hiredis_eval(uint64_t ctx, b_lean_obj_arg script, b_lean_obj_arg keys, b_lean_obj_arg args, lean_obj_arg w) {
+lean_obj_res l_hiredis_eval(b_lean_obj_arg ctx, b_lean_obj_arg script, b_lean_obj_arg keys, b_lean_obj_arg args, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(script);
   size_t s_len = lean_sarray_size(script);

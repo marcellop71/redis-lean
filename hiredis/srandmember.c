@@ -1,6 +1,6 @@
-// srandmember :: UInt64 -> ByteArray -> Option Int64 -> EIO Error (List ByteArray)
+// srandmember :: Ctx -> ByteArray -> Option Int64 -> EIO Error (List ByteArray)
 // Get random members from a set without removing them
-lean_obj_res l_hiredis_srandmember(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_srandmember(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

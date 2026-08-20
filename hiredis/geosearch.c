@@ -1,8 +1,8 @@
-// geosearch :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> Float -> ByteArray -> Option UInt64 -> EIO Error (List ByteArray)
+// geosearch :: Ctx -> ByteArray -> ByteArray -> ByteArray -> Float -> ByteArray -> Option UInt64 -> EIO Error (List ByteArray)
 // Search for members within a circular or rectangular area
 // fromType: "FROMMEMBER" or "FROMLONLAT", fromValue: member name or "lon,lat"
 // byType: "BYRADIUS" or "BYBOX", radius/width, unit: m/km/ft/mi
-lean_obj_res l_hiredis_geosearch(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg from_type, b_lean_obj_arg from_value, b_lean_obj_arg by_type, double radius, b_lean_obj_arg unit, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_geosearch(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg from_type, b_lean_obj_arg from_value, b_lean_obj_arg by_type, double radius, b_lean_obj_arg unit, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

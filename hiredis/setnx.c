@@ -1,7 +1,7 @@
-// setnx :: UInt64 -> ByteArray -> ByteArray -> EIO Error Bool
+// setnx :: Ctx -> ByteArray -> ByteArray -> EIO Error Bool
 // Set value only if key doesn't exist (deprecated, use SET with NX)
 // Returns true if key was set, false if key already existed
-lean_obj_res l_hiredis_setnx(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg value, lean_obj_arg w) {
+lean_obj_res l_hiredis_setnx(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg value, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

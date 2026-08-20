@@ -1,6 +1,6 @@
-// reset :: UInt64 -> EIO Error Unit
+// reset :: Ctx -> EIO Error Unit
 // Reset the connection (Redis 6.2+)
-lean_obj_res l_hiredis_reset(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_reset(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "RESET");

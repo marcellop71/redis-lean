@@ -1,10 +1,10 @@
-// scan :: UInt64 -> UInt64 -> Option ByteArray -> Option UInt64 -> Option ByteArray -> EIO Error (UInt64 × List ByteArray)
+// scan :: Ctx -> UInt64 -> Option ByteArray -> Option UInt64 -> Option ByteArray -> EIO Error (UInt64 × List ByteArray)
 // Incrementally iterate keys
 // cursor: the cursor position (0 to start)
 // pattern: optional MATCH pattern
 // count: optional COUNT hint
 // type: optional TYPE filter
-lean_obj_res l_hiredis_scan(uint64_t ctx, uint64_t cursor, b_lean_obj_arg pattern_opt, b_lean_obj_arg count_opt, b_lean_obj_arg type_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_scan(b_lean_obj_arg ctx, uint64_t cursor, b_lean_obj_arg pattern_opt, b_lean_obj_arg count_opt, b_lean_obj_arg type_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   const char* argv[8];

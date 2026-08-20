@@ -1,8 +1,8 @@
-// zrandmember :: UInt64 -> ByteArray -> Option Int64 -> Bool -> EIO Error (List ByteArray)
+// zrandmember :: Ctx -> ByteArray -> Option Int64 -> Bool -> EIO Error (List ByteArray)
 // Get random members from a sorted set
 // count: if provided, return count members; if negative, can return duplicates
 // withscores: if true, return member-score pairs as flat list
-lean_obj_res l_hiredis_zrandmember(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg count_opt, uint8_t withscores, lean_obj_arg w) {
+lean_obj_res l_hiredis_zrandmember(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg count_opt, uint8_t withscores, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

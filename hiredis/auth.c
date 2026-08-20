@@ -1,5 +1,5 @@
-// auth :: UInt64 -> String -> EIO RedisError Bool
-lean_obj_res l_hiredis_auth(uint64_t ctx, b_lean_obj_arg password, lean_obj_arg w) {
+// auth :: Ctx -> String -> EIO RedisError Bool
+lean_obj_res l_hiredis_auth(b_lean_obj_arg ctx, b_lean_obj_arg password, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* pwd = lean_string_cstr(password);
   

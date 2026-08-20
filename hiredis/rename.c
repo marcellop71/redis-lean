@@ -1,6 +1,6 @@
-// rename :: UInt64 -> ByteArray -> ByteArray -> EIO Error Unit
+// rename :: Ctx -> ByteArray -> ByteArray -> EIO Error Unit
 // Rename a key
-lean_obj_res l_hiredis_rename(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg newkey, lean_obj_arg w) {
+lean_obj_res l_hiredis_rename(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg newkey, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

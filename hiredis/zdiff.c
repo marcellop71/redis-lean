@@ -1,6 +1,6 @@
-// zdiff :: UInt64 -> List ByteArray -> Bool -> EIO Error (List ByteArray)
+// zdiff :: Ctx -> List ByteArray -> Bool -> EIO Error (List ByteArray)
 // Get the difference of multiple sorted sets
-lean_obj_res l_hiredis_zdiff(uint64_t ctx, b_lean_obj_arg keys, uint8_t withscores, lean_obj_arg w) {
+lean_obj_res l_hiredis_zdiff(b_lean_obj_arg ctx, b_lean_obj_arg keys, uint8_t withscores, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

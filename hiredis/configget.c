@@ -1,6 +1,6 @@
-// configget :: UInt64 -> ByteArray -> EIO Error (List ByteArray)
+// configget :: Ctx -> ByteArray -> EIO Error (List ByteArray)
 // Get the value of a configuration parameter
-lean_obj_res l_hiredis_configget(uint64_t ctx, b_lean_obj_arg parameter, lean_obj_arg w) {
+lean_obj_res l_hiredis_configget(b_lean_obj_arg ctx, b_lean_obj_arg parameter, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* p = (const char*)lean_sarray_cptr(parameter);
   size_t p_len = lean_sarray_size(parameter);

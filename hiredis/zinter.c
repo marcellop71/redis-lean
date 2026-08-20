@@ -1,6 +1,6 @@
-// zinter :: UInt64 -> List ByteArray -> Bool -> EIO Error (List ByteArray)
+// zinter :: Ctx -> List ByteArray -> Bool -> EIO Error (List ByteArray)
 // Get the intersection of multiple sorted sets
-lean_obj_res l_hiredis_zinter(uint64_t ctx, b_lean_obj_arg keys, uint8_t withscores, lean_obj_arg w) {
+lean_obj_res l_hiredis_zinter(b_lean_obj_arg ctx, b_lean_obj_arg keys, uint8_t withscores, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

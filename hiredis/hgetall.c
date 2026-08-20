@@ -1,6 +1,6 @@
-// hgetall :: UInt64 -> ByteArray -> EIO RedisError (List ByteArray)
+// hgetall :: Ctx -> ByteArray -> EIO RedisError (List ByteArray)
 // Redis returns an error if the value stored at key is not a hash
-lean_obj_res l_hiredis_hgetall(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+lean_obj_res l_hiredis_hgetall(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

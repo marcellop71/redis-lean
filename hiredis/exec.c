@@ -1,7 +1,7 @@
-// exec :: UInt64 -> EIO Error (Option (List ByteArray))
+// exec :: Ctx -> EIO Error (Option (List ByteArray))
 // Execute all commands issued after MULTI
 // Returns none if WATCH triggered an abort, some list of results otherwise
-lean_obj_res l_hiredis_exec(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_exec(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "EXEC");

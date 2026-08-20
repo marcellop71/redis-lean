@@ -1,6 +1,6 @@
-// slowlogget :: UInt64 -> Option UInt64 -> EIO Error ByteArray
+// slowlogget :: Ctx -> Option UInt64 -> EIO Error ByteArray
 // Get slow log entries (as raw bytes, needs parsing)
-lean_obj_res l_hiredis_slowlogget(uint64_t ctx, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_slowlogget(b_lean_obj_arg ctx, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r;

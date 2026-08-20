@@ -1,6 +1,6 @@
-// time :: UInt64 -> EIO Error (UInt64 × UInt64)
+// time :: Ctx -> EIO Error (UInt64 × UInt64)
 // Get the current server time (seconds, microseconds)
-lean_obj_res l_hiredis_time(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_time(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "TIME");

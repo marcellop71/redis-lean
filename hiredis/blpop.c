@@ -1,7 +1,7 @@
-// blpop :: UInt64 -> List ByteArray -> Float -> EIO Error (Option (ByteArray × ByteArray))
+// blpop :: Ctx -> List ByteArray -> Float -> EIO Error (Option (ByteArray × ByteArray))
 // Blocking pop from the head of lists
 // timeout: seconds to wait (0 = wait indefinitely)
-lean_obj_res l_hiredis_blpop(uint64_t ctx, b_lean_obj_arg keys, double timeout, lean_obj_arg w) {
+lean_obj_res l_hiredis_blpop(b_lean_obj_arg ctx, b_lean_obj_arg keys, double timeout, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

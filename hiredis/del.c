@@ -1,5 +1,5 @@
-// del :: UInt64 -> List ByteArray -> EIO RedisError UInt64
-lean_obj_res l_hiredis_del(uint64_t ctx, b_lean_obj_arg keys, lean_obj_arg w) {
+// del :: Ctx -> List ByteArray -> EIO RedisError UInt64
+lean_obj_res l_hiredis_del(b_lean_obj_arg ctx, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   
   lean_object* current = keys;

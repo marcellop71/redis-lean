@@ -1,6 +1,6 @@
-// geoadd :: UInt64 -> ByteArray -> List (Float × Float × ByteArray) -> EIO Error UInt64
+// geoadd :: Ctx -> ByteArray -> List (Float × Float × ByteArray) -> EIO Error UInt64
 // Add geospatial items (longitude, latitude, member) to a sorted set
-lean_obj_res l_hiredis_geoadd(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg items, lean_obj_arg w) {
+lean_obj_res l_hiredis_geoadd(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg items, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

@@ -1,6 +1,6 @@
-// clientsetname :: UInt64 -> ByteArray -> EIO Error Unit
+// clientsetname :: Ctx -> ByteArray -> EIO Error Unit
 // Set the current connection's name
-lean_obj_res l_hiredis_clientsetname(uint64_t ctx, b_lean_obj_arg name, lean_obj_arg w) {
+lean_obj_res l_hiredis_clientsetname(b_lean_obj_arg ctx, b_lean_obj_arg name, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* n = (const char*)lean_sarray_cptr(name);
   size_t n_len = lean_sarray_size(name);

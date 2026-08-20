@@ -1,6 +1,6 @@
-// pfcount :: UInt64 -> List ByteArray -> EIO Error UInt64
+// pfcount :: Ctx -> List ByteArray -> EIO Error UInt64
 // Return the approximated cardinality of the set(s) observed by the HyperLogLog(s)
-lean_obj_res l_hiredis_pfcount(uint64_t ctx, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_pfcount(b_lean_obj_arg ctx, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

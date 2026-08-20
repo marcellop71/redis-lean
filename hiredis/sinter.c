@@ -1,6 +1,6 @@
-// sinter :: UInt64 -> List ByteArray -> EIO Error (List ByteArray)
+// sinter :: Ctx -> List ByteArray -> EIO Error (List ByteArray)
 // Get the intersection of all given sets
-lean_obj_res l_hiredis_sinter(uint64_t ctx, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_sinter(b_lean_obj_arg ctx, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   size_t num_keys = 0;

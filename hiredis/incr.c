@@ -1,5 +1,5 @@
-// incr :: UInt64 -> ByteArray -> EIO RedisError UInt64
-lean_obj_res l_hiredis_incr(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+// incr :: Ctx -> ByteArray -> EIO RedisError UInt64
+lean_obj_res l_hiredis_incr(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);
@@ -27,9 +27,9 @@ lean_obj_res l_hiredis_incr(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
   return lean_io_result_mk_ok(lean_box_uint64((uint64_t)result));
 }
 
-// incrby :: UInt64 -> ByteArray -> Int64 -> EIO RedisError UInt64
+// incrby :: Ctx -> ByteArray -> Int64 -> EIO RedisError UInt64
 // Increment the integer value of a key by the given amount
-lean_obj_res l_hiredis_incrby(uint64_t ctx, b_lean_obj_arg key, int64_t increment, lean_obj_arg w) {
+lean_obj_res l_hiredis_incrby(b_lean_obj_arg ctx, b_lean_obj_arg key, int64_t increment, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

@@ -1,5 +1,5 @@
-// smembers :: UInt64 -> ByteArray -> EIO Error (List ByteArray)
-lean_obj_res l_hiredis_smembers(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+// smembers :: Ctx -> ByteArray -> EIO Error (List ByteArray)
+lean_obj_res l_hiredis_smembers(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

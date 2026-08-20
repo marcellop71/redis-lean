@@ -48,7 +48,7 @@ lean_obj_res l_hiredis_connect(b_lean_obj_arg host, uint32_t port, lean_obj_arg 
         return lean_io_result_mk_error(error);
     }
 
-    return lean_io_result_mk_ok(lean_box_uint64((uint64_t)conn));
+    return lean_io_result_mk_ok(mk_redis_connection_external(conn));
 }
 
 // SSL connect
@@ -121,38 +121,17 @@ lean_obj_res l_hiredis_connect_ssl(
         return lean_io_result_mk_error(mk_redis_connect_error_other("Failed to allocate connection wrapper"));
     }
 
-    return lean_io_result_mk_ok(lean_box_uint64((uint64_t)conn));
+    return lean_io_result_mk_ok(mk_redis_connection_external(conn));
 }
 
-// Updated free function - handles both plain and SSL connections
-// Now idempotent: safe to call multiple times
-lean_obj_res l_hiredis_free(uint64_t ctx, lean_obj_arg w) {
-    if (ctx == 0) {
-        return lean_io_result_mk_ok(lean_box(0));
-    }
-
-    RedisConnection* conn = (RedisConnection*)ctx;
-
-    // Check if already freed (idempotent)
-    if (conn->freed) {
-        return lean_io_result_mk_ok(lean_box(0));
-    }
-
-    // Mark as freed FIRST to prevent double-free race
-    conn->freed = 1;
-
-    // Free resources
-    if (conn->redis) {
-        redisFree(conn->redis);
-        conn->redis = NULL;
-    }
-    if (conn->ssl) {
-        redisFreeSSLContext(conn->ssl);
-        conn->ssl = NULL;
-    }
-
-    // Free the wrapper struct
-    free(conn);
-
+// Close a connection: releases the socket and, if present, the SSL context.
+//
+// The wrapper struct is deliberately NOT freed here -- that is the finalizer's
+// job, once Lean drops the last reference. Keeping it alive means the `closed`
+// flag remains a valid read, so this is genuinely idempotent and any later use
+// of the connection gets a clean error rather than touching freed memory.
+lean_obj_res l_hiredis_close(b_lean_obj_arg ctx, lean_obj_arg w) {
+    RedisConnection* conn = (RedisConnection*)lean_get_external_data(ctx);
+    redis_connection_close(conn);
     return lean_io_result_mk_ok(lean_box(0));
 }

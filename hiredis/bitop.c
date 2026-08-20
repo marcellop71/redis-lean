@@ -1,7 +1,7 @@
-// bitop :: UInt64 -> ByteArray -> ByteArray -> List ByteArray -> EIO Error UInt64
+// bitop :: Ctx -> ByteArray -> ByteArray -> List ByteArray -> EIO Error UInt64
 // Perform bitwise operations between strings
 // operation: AND, OR, XOR, NOT
-lean_obj_res l_hiredis_bitop(uint64_t ctx, b_lean_obj_arg operation, b_lean_obj_arg destkey, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_bitop(b_lean_obj_arg ctx, b_lean_obj_arg operation, b_lean_obj_arg destkey, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* op = (const char*)lean_sarray_cptr(operation);
   size_t op_len = lean_sarray_size(operation);

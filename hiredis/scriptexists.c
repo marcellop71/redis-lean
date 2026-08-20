@@ -1,6 +1,6 @@
-// scriptexists :: UInt64 -> List ByteArray -> EIO Error (List Bool)
+// scriptexists :: Ctx -> List ByteArray -> EIO Error (List Bool)
 // Check existence of scripts in the script cache
-lean_obj_res l_hiredis_scriptexists(uint64_t ctx, b_lean_obj_arg sha1s, lean_obj_arg w) {
+lean_obj_res l_hiredis_scriptexists(b_lean_obj_arg ctx, b_lean_obj_arg sha1s, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count SHA1s

@@ -1,6 +1,6 @@
-// evalsha :: UInt64 -> ByteArray -> List ByteArray -> List ByteArray -> EIO Error ByteArray
+// evalsha :: Ctx -> ByteArray -> List ByteArray -> List ByteArray -> EIO Error ByteArray
 // Execute a Lua script by its SHA1 digest
-lean_obj_res l_hiredis_evalsha(uint64_t ctx, b_lean_obj_arg sha1, b_lean_obj_arg keys, b_lean_obj_arg args, lean_obj_arg w) {
+lean_obj_res l_hiredis_evalsha(b_lean_obj_arg ctx, b_lean_obj_arg sha1, b_lean_obj_arg keys, b_lean_obj_arg args, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(sha1);
   size_t s_len = lean_sarray_size(sha1);

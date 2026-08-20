@@ -1,6 +1,6 @@
-// mget :: UInt64 -> List ByteArray -> EIO Error (List (Option ByteArray))
+// mget :: Ctx -> List ByteArray -> EIO Error (List (Option ByteArray))
 // Get values for multiple keys
-lean_obj_res l_hiredis_mget(uint64_t ctx, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_mget(b_lean_obj_arg ctx, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

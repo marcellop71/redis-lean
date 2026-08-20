@@ -1,6 +1,6 @@
-// clientpause :: UInt64 -> UInt64 -> EIO Error Unit
+// clientpause :: Ctx -> UInt64 -> EIO Error Unit
 // Pause client connections for timeout milliseconds
-lean_obj_res l_hiredis_clientpause(uint64_t ctx, uint64_t timeout, lean_obj_arg w) {
+lean_obj_res l_hiredis_clientpause(b_lean_obj_arg ctx, uint64_t timeout, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   char timeout_str[32];

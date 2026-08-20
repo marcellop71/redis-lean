@@ -1,4 +1,4 @@
-// xreadgroup :: UInt64 -> String -> String -> String -> UInt64 -> EIO RedisError ByteArray
+// xreadgroup :: Ctx -> String -> String -> String -> UInt64 -> EIO RedisError ByteArray
 // Read from stream using consumer group
 // Args: ctx, group, consumer, stream, count
 
@@ -62,8 +62,8 @@ static size_t xrg_serialize_reply(redisReply* reply, char* buf, size_t offset) {
   }
 }
 
-// xreadgroup :: UInt64 -> String -> String -> String -> UInt64 -> EIO RedisError ByteArray
-lean_obj_res l_hiredis_xreadgroup(uint64_t ctx, b_lean_obj_arg group_arg, b_lean_obj_arg consumer_arg,
+// xreadgroup :: Ctx -> String -> String -> String -> UInt64 -> EIO RedisError ByteArray
+lean_obj_res l_hiredis_xreadgroup(b_lean_obj_arg ctx, b_lean_obj_arg group_arg, b_lean_obj_arg consumer_arg,
                                    b_lean_obj_arg stream_arg, uint64_t count, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
@@ -153,9 +153,9 @@ lean_obj_res l_hiredis_xreadgroup(uint64_t ctx, b_lean_obj_arg group_arg, b_lean
   return lean_io_result_mk_ok(out);
 }
 
-// xack :: UInt64 -> String -> String -> String -> EIO RedisError UInt64
+// xack :: Ctx -> String -> String -> String -> EIO RedisError UInt64
 // Acknowledge a message in a consumer group
-lean_obj_res l_hiredis_xack(uint64_t ctx, b_lean_obj_arg stream_arg, b_lean_obj_arg group_arg,
+lean_obj_res l_hiredis_xack(b_lean_obj_arg ctx, b_lean_obj_arg stream_arg, b_lean_obj_arg group_arg,
                              b_lean_obj_arg msgid_arg, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
@@ -200,9 +200,9 @@ lean_obj_res l_hiredis_xack(uint64_t ctx, b_lean_obj_arg stream_arg, b_lean_obj_
   }
 }
 
-// xgroup_create :: UInt64 -> String -> String -> String -> EIO RedisError Unit
+// xgroup_create :: Ctx -> String -> String -> String -> EIO RedisError Unit
 // Create a consumer group
-lean_obj_res l_hiredis_xgroup_create(uint64_t ctx, b_lean_obj_arg stream_arg, b_lean_obj_arg group_arg,
+lean_obj_res l_hiredis_xgroup_create(b_lean_obj_arg ctx, b_lean_obj_arg stream_arg, b_lean_obj_arg group_arg,
                                       b_lean_obj_arg start_id_arg, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 

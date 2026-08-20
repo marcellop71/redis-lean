@@ -1,6 +1,6 @@
-// watch :: UInt64 -> List ByteArray -> EIO Error Unit
+// watch :: Ctx -> List ByteArray -> EIO Error Unit
 // Watch keys for changes before a transaction
-lean_obj_res l_hiredis_watch(uint64_t ctx, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_watch(b_lean_obj_arg ctx, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

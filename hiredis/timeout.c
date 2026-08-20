@@ -30,11 +30,11 @@ lean_obj_res l_hiredis_connect_with_timeout(b_lean_obj_arg host, uint32_t port, 
         return lean_io_result_mk_error(error);
     }
 
-    return lean_io_result_mk_ok(lean_box_uint64((uint64_t)conn));
+    return lean_io_result_mk_ok(mk_redis_connection_external(conn));
 }
 
 // Set command timeout on existing connection (in milliseconds)
-lean_obj_res l_hiredis_set_timeout(uint64_t ctx, uint64_t timeout_ms, lean_obj_arg w) {
+lean_obj_res l_hiredis_set_timeout(b_lean_obj_arg ctx, uint64_t timeout_ms, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     struct timeval tv;
@@ -52,7 +52,7 @@ lean_obj_res l_hiredis_set_timeout(uint64_t ctx, uint64_t timeout_ms, lean_obj_a
 }
 
 // Enable TCP keepalive
-lean_obj_res l_hiredis_enable_keepalive(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_enable_keepalive(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     int result = redisEnableKeepAlive(c);
@@ -66,7 +66,7 @@ lean_obj_res l_hiredis_enable_keepalive(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Set TCP keepalive interval (seconds)
-lean_obj_res l_hiredis_set_keepalive_interval(uint64_t ctx, int32_t interval_sec, lean_obj_arg w) {
+lean_obj_res l_hiredis_set_keepalive_interval(b_lean_obj_arg ctx, int32_t interval_sec, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     int result = redisEnableKeepAliveWithInterval(c, interval_sec);

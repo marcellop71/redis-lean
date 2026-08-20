@@ -1,7 +1,7 @@
-// msetnx :: UInt64 -> List (ByteArray × ByteArray) -> EIO Error Bool
+// msetnx :: Ctx -> List (ByteArray × ByteArray) -> EIO Error Bool
 // Set multiple key-value pairs only if none exist
 // Returns true if all keys were set, false if no keys were set
-lean_obj_res l_hiredis_msetnx(uint64_t ctx, b_lean_obj_arg pairs, lean_obj_arg w) {
+lean_obj_res l_hiredis_msetnx(b_lean_obj_arg ctx, b_lean_obj_arg pairs, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count pairs

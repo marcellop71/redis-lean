@@ -1,6 +1,6 @@
-// bgrewriteaof :: UInt64 -> EIO Error ByteArray
+// bgrewriteaof :: Ctx -> EIO Error ByteArray
 // Asynchronously rewrite the append-only file
-lean_obj_res l_hiredis_bgrewriteaof(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_bgrewriteaof(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "BGREWRITEAOF");

@@ -1,3 +1,4 @@
+import Std.Sync.Mutex
 import RedisLean.Config
 import RedisLean.Error
 import RedisLean.FFI
@@ -22,6 +23,9 @@ structure PoolConfig where
 
 /-- Connection slot in the pool -/
 structure PooledConnection where
+  /-- Stable slot identity. `FFI.Ctx` is opaque and has no `BEq`, so the pool
+      tracks slots by this rather than by comparing handles. -/
+  id : Nat
   /-- The underlying FFI context -/
   ctx : FFI.Ctx
   /-- When this connection was created (nanoseconds) -/
@@ -34,11 +38,11 @@ structure PooledConnection where
 namespace PooledConnection
 
 /-- Create a new pooled connection -/
-def create (ctx : FFI.Ctx) : IO PooledConnection := do
+def create (id : Nat) (ctx : FFI.Ctx) : IO PooledConnection := do
   let now ← IO.monoNanosNow
   let lastUsedAt ← IO.mkRef now
   let inUse ← IO.mkRef false
-  return { ctx, createdAt := now, lastUsedAt, inUse }
+  return { id, ctx, createdAt := now, lastUsedAt, inUse }
 
 /-- Mark connection as in use -/
 def acquire (conn : PooledConnection) : IO Unit := do
@@ -114,8 +118,10 @@ def getSnapshot (stats : PoolStats) : IO (Nat × Nat × Nat × Nat × Nat) := do
 end PoolStats
 
 /-- Connection pool for managing multiple Redis connections.
-    Note: This implementation uses a simple spin-lock approach for thread safety.
-    For high-concurrency scenarios, consider using external synchronization. -/
+
+All mutation of the pool's slot table happens under `lock`, a real mutex. The
+previous version tested and set an `IO.Ref Bool`, which is not atomic and so
+provided no mutual exclusion at all. -/
 structure Pool where
   /-- Pool configuration -/
   config : PoolConfig
@@ -123,59 +129,22 @@ structure Pool where
   redisConfig : Config
   /-- All connections in the pool -/
   connections : IO.Ref (Array PooledConnection)
-  /-- Simple lock flag for synchronization -/
-  lockFlag : IO.Ref Bool
+  /-- Guards `connections` and `nextId`. -/
+  lock : Std.BaseMutex
+  /-- Monotonic source of slot ids -/
+  nextId : IO.Ref Nat
   /-- Pool statistics -/
   stats : PoolStats
+  /-- Metrics shared by every `withConnection` call on this pool. -/
+  metrics : Metrics
 
 namespace Pool
 
-/-- Acquire the lock (simple spin-lock) -/
-private def acquireLock (pool : Pool) : IO Unit := do
-  let mut acquired := false
-  while !acquired do
-    let current ← pool.lockFlag.get
-    if !current then
-      pool.lockFlag.set true
-      acquired := true
-    else
-      IO.sleep 1
-
-/-- Release the lock -/
-private def releaseLock (pool : Pool) : IO Unit :=
-  pool.lockFlag.set false
-
-/-- Create a new connection pool -/
-def create (cfg : Config) (poolCfg : PoolConfig := {}) : IO Pool := do
-  let connections ← IO.mkRef #[]
-  let lockFlag ← IO.mkRef false
-  let stats ← PoolStats.create
-  let pool : Pool := {
-    config := poolCfg,
-    redisConfig := cfg,
-    connections,
-    lockFlag,
-    stats
-  }
-  -- Initialize minimum connections
-  for _ in [:poolCfg.minConnections] do
-    let _ ← createConnectionInternal pool
-  return pool
-where
-  createConnectionInternal (pool : Pool) : IO (Option PooledConnection) := do
-    let conns ← pool.connections.get
-    if conns.size >= pool.config.maxConnections then
-      return none
-    try
-      let ctx ← EIO.toIO (fun e => IO.userError s!"Connection failed: {e}")
-        (FFI.connect pool.redisConfig.host (UInt32.ofNat pool.redisConfig.port) pool.redisConfig.ssl)
-      let conn ← PooledConnection.create ctx
-      pool.connections.modify (·.push conn)
-      PoolStats.incrementCreated pool.stats
-      return some conn
-    catch _ =>
-      PoolStats.incrementFailed pool.stats
-      return none
+/-- Run `act` holding the pool lock. Never nest these: `BaseMutex` is not
+reentrant, so a nested lock on the same thread is undefined behaviour. -/
+private def withLock {α : Type} (pool : Pool) (act : IO α) : IO α := do
+  pool.lock.lock
+  try act finally pool.lock.unlock
 
 /-- Create a new connection and add it to the pool -/
 private def createConnection (pool : Pool) : IO (Option PooledConnection) := do
@@ -184,14 +153,36 @@ private def createConnection (pool : Pool) : IO (Option PooledConnection) := do
     return none
   try
     let ctx ← EIO.toIO (fun e => IO.userError s!"Connection failed: {e}")
-      (FFI.connect pool.redisConfig.host (UInt32.ofNat pool.redisConfig.port) pool.redisConfig.ssl)
-    let conn ← PooledConnection.create ctx
+      (FFI.connectConfig pool.redisConfig)
+    let id ← pool.nextId.modifyGet (fun n => (n, n + 1))
+    let conn ← PooledConnection.create id ctx
     pool.connections.modify (·.push conn)
     PoolStats.incrementCreated pool.stats
     return some conn
   catch _ =>
     PoolStats.incrementFailed pool.stats
     return none
+
+/-- Create a new connection pool -/
+def create (cfg : Config) (poolCfg : PoolConfig := {}) : IO Pool := do
+  let connections ← IO.mkRef #[]
+  let lock ← Std.BaseMutex.new
+  let nextId ← IO.mkRef 0
+  let stats ← PoolStats.create
+  let metrics ← Metrics.make
+  let pool : Pool := {
+    config := poolCfg,
+    redisConfig := cfg,
+    connections,
+    lock,
+    nextId,
+    stats,
+    metrics
+  }
+  -- Initialize minimum connections
+  for _ in [:poolCfg.minConnections] do
+    let _ ← createConnection pool
+  return pool
 
 /-- Find an available connection in the pool -/
 private def findAvailable (pool : Pool) : IO (Option PooledConnection) := do
@@ -202,79 +193,94 @@ private def findAvailable (pool : Pool) : IO (Option PooledConnection) := do
       return some conn
   return none
 
-/-- Acquire a connection from the pool -/
-def acquire (pool : Pool) : IO (Except Error FFI.Ctx) := do
-  let startTime ← IO.monoNanosNow
-  let timeoutNs := pool.config.acquireTimeoutMs * 1000000
-  acquireLock pool
-  try
-    -- Try to find an available connection
-    let mut result : Option PooledConnection := none
-    while result.isNone do
-      let available ← findAvailable pool
-      match available with
+/-- Drop a slot from the pool and close its connection. Caller must hold the lock. -/
+private def discardLocked (pool : Pool) (target : PooledConnection) : IO Unit := do
+  pool.connections.modify (·.filter (fun c => c.id != target.id))
+  let _ ← (FFI.close target.ctx).toBaseIO
+  pure ()
+
+/-- Check a connection is still usable, reconnecting once if it is not.
+Honours `PoolConfig.validateOnAcquire`; a no-op when that is `false`. -/
+private def validate (pool : Pool) (conn : PooledConnection) : IO Bool := do
+  if !pool.config.validateOnAcquire then return true
+  match ← (FFI.isConnected conn.ctx).toBaseIO with
+  | .ok true => return true
+  | _ =>
+    match ← (FFI.reconnect conn.ctx).toBaseIO with
+    | .ok _ => return true
+    | .error _ => return false
+
+/-- One locked attempt to take a slot: reuse an idle one, else open a new one. -/
+private def tryTakeSlot (pool : Pool) : IO (Option PooledConnection) :=
+  pool.withLock do
+    match ← findAvailable pool with
+    | some conn =>
+      conn.acquire
+      PoolStats.incrementAcquired pool.stats
+      return some conn
+    | none =>
+      match ← createConnection pool with
       | some conn =>
         conn.acquire
         PoolStats.incrementAcquired pool.stats
-        result := some conn
-      | none =>
-        -- Try to create a new connection
-        let newConn ← createConnection pool
-        match newConn with
-        | some conn =>
-          conn.acquire
-          PoolStats.incrementAcquired pool.stats
-          result := some conn
-        | none =>
-          -- Check timeout
-          let now ← IO.monoNanosNow
-          if now - startTime > timeoutNs then
-            PoolStats.incrementTimeout pool.stats
-            releaseLock pool
-            return .error (.otherError "Connection pool acquire timeout")
-          -- Wait a bit and retry
-          releaseLock pool
-          IO.sleep 10
-          acquireLock pool
-    releaseLock pool
-    match result with
-    | some conn => return .ok conn.ctx
-    | none => return .error (.otherError "Failed to acquire connection")
-  catch e =>
-    releaseLock pool
-    return .error (.otherError s!"Pool acquire error: {e}")
+        return some conn
+      | none => return none
+
+/-- Acquire a connection from the pool, waiting up to `acquireTimeoutMs`. -/
+partial def acquire (pool : Pool) : IO (Except Error PooledConnection) := do
+  let startTime ← IO.monoNanosNow
+  let timeoutNs := pool.config.acquireTimeoutMs * 1000000
+  let rec go : IO (Except Error PooledConnection) := do
+    match ← tryTakeSlot pool with
+    | some conn =>
+      if ← validate pool conn then
+        return .ok conn
+      else
+        -- Dead connection: retire the slot and try again, which frees capacity
+        -- for `createConnection` to open a replacement.
+        pool.withLock (discardLocked pool conn)
+        PoolStats.incrementFailed pool.stats
+        go
+    | none =>
+      let now ← IO.monoNanosNow
+      if now - startTime > timeoutNs then
+        PoolStats.incrementTimeout pool.stats
+        return .error (.otherError "Connection pool acquire timeout")
+      IO.sleep 10
+      go
+  go
 
 /-- Release a connection back to the pool -/
-def release (pool : Pool) (ctx : FFI.Ctx) : IO Unit := do
-  acquireLock pool
-  let conns ← pool.connections.get
-  for conn in conns do
-    if conn.ctx == ctx then
-      conn.release
-      PoolStats.incrementReleased pool.stats
-      break
-  releaseLock pool
+def release (pool : Pool) (target : PooledConnection) : IO Unit :=
+  pool.withLock do
+    let conns ← pool.connections.get
+    for conn in conns do
+      if conn.id == target.id then
+        conn.release
+        PoolStats.incrementReleased pool.stats
+        break
 
 /-- Execute an action with a pooled connection -/
 def withConnection (pool : Pool) (action : RedisM α) : IO (Except Error α) := do
-  let ctxResult ← pool.acquire
-  match ctxResult with
+  let acquired ← pool.acquire
+  match acquired with
   | .error e => return .error e
-  | .ok ctx =>
-    let metrics ← Metrics.make
+  | .ok conn =>
+    -- Use the pool's own metrics, so measurements accumulate across calls
+    -- instead of being created and discarded per `withConnection`.
     let state : State := {
-      ctx := ctx,
+      ctx := conn.ctx,
       isConnected := true,
-      metrics := metrics,
-      recordLatency := fun cmd micros => Metrics.recordLatency metrics cmd micros
+      metrics := pool.metrics,
+      recordLatency := fun cmd micros => Metrics.recordLatency pool.metrics cmd micros
     }
     let read : Read := { config := pool.redisConfig, enableMetrics := true }
     try
       let result ← runRedisFromState read state action
-      pool.release ctx
+      pool.release conn
       return result
     catch e =>
-      pool.release ctx
+      pool.release conn
       return .error (.otherError s!"Action failed: {e}")
 
 /-- Get the current pool size -/
@@ -298,8 +304,7 @@ def inUseCount (pool : Pool) : IO Nat := do
   return total - available
 
 /-- Close idle connections that exceed the idle timeout -/
-def pruneIdleConnections (pool : Pool) : IO Nat := do
-  acquireLock pool
+def pruneIdleConnections (pool : Pool) : IO Nat := pool.withLock do
   let conns ← pool.connections.get
   let mut pruned := 0
   let mut newConns : Array PooledConnection := #[]
@@ -308,22 +313,19 @@ def pruneIdleConnections (pool : Pool) : IO Nat := do
     let idleMs ← conn.getIdleTimeMs
     if available && idleMs > pool.config.idleTimeoutMs && newConns.size >= pool.config.minConnections then
       -- Close this connection
-      let _ ← EIO.toIO (fun _ => IO.userError "free failed") (FFI.Internal.free conn.ctx)
+      let _ ← EIO.toIO (fun _ => IO.userError "free failed") (FFI.Internal.close conn.ctx)
       pruned := pruned + 1
     else
       newConns := newConns.push conn
   pool.connections.set newConns
-  releaseLock pool
   return pruned
 
 /-- Close all connections and reset the pool -/
-def close (pool : Pool) : IO Unit := do
-  acquireLock pool
+def close (pool : Pool) : IO Unit := pool.withLock do
   let conns ← pool.connections.get
   for conn in conns do
-    let _ ← EIO.toIO (fun _ => IO.userError "free failed") (FFI.Internal.free conn.ctx)
+    let _ ← EIO.toIO (fun _ => IO.userError "free failed") (FFI.Internal.close conn.ctx)
   pool.connections.set #[]
-  releaseLock pool
 
 /-- Get pool statistics -/
 def getStats (pool : Pool) : IO (Nat × Nat × Nat × Nat × Nat) :=

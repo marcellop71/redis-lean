@@ -1,6 +1,6 @@
-// xtrim :: UInt64 -> ByteArray -> String -> UInt64 -> EIO RedisError UInt64
+// xtrim :: Ctx -> ByteArray -> String -> UInt64 -> EIO RedisError UInt64
 // Trim stream to approximately the specified max length
-lean_obj_res l_hiredis_xtrim(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg strategy, uint64_t max_len, lean_obj_arg w) {
+lean_obj_res l_hiredis_xtrim(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg strategy, uint64_t max_len, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

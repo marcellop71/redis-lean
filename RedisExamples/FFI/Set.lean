@@ -17,21 +17,21 @@ def ex0 : EIO Error Unit := do
 
     try
       Log.EIO.info s!"set key1 → Alice"
-      FFI.set ctx key1 value1
+      let _ ← FFI.set ctx key1 value1
       Log.EIO.info s!"✓ success"
     catch e =>
       Log.EIO.error s!"✗ error {e}"
 
     try
       Log.EIO.info s!"set key1 → Alice [NX - set if not exists]"
-      FFI.set ctx key1 value1 FFI.SetExistsOption.nx
+      let _ ← FFI.set ctx key1 value1 FFI.SetExistsOption.nx
       Log.EIO.info s!"✓ success"
     catch e =>
       Log.EIO.error s!"✗ error {e}"
 
     try
       Log.EIO.info s!"set key1 → Alice [XX - set if exists]"
-      FFI.set ctx key1 value1 FFI.SetExistsOption.xx
+      let _ ← FFI.set ctx key1 value1 FFI.SetExistsOption.xx
       Log.EIO.info s!"✓ success"
     catch e =>
       Log.EIO.error s!"✗ error {e}"
@@ -45,7 +45,7 @@ def ex1 : EIO Error Unit := do
 
     try
       Log.EIO.info "set message → Hello, Redis!"
-      FFI.set ctx key value
+      let _ ← FFI.set ctx key value
       Log.EIO.info "✓ set complete"
     catch e =>
       Log.EIO.error s!"✗ set error: {e}"
@@ -73,7 +73,7 @@ def ex2 : EIO Error Unit := do
       for (keyStr, valueStr) in keys do
         let key := String.toUTF8 keyStr
         let value := String.toUTF8 valueStr
-        FFI.set ctx key value
+        let _ ← FFI.set ctx key value
       Log.EIO.info "✓ set multiple keys"
     catch e =>
       Log.EIO.error s!"✗ set error: {e}"

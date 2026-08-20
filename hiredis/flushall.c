@@ -1,5 +1,5 @@
-// flushall :: UInt64 -> String -> EIO RedisError Bool
-lean_obj_res l_hiredis_flushall(uint64_t ctx, b_lean_obj_arg mode, lean_obj_arg w) {
+// flushall :: Ctx -> String -> EIO RedisError Bool
+lean_obj_res l_hiredis_flushall(b_lean_obj_arg ctx, b_lean_obj_arg mode, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* mode_str = lean_string_cstr(mode);
   

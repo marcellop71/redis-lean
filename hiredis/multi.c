@@ -1,6 +1,6 @@
-// multi :: UInt64 -> EIO Error Unit
+// multi :: Ctx -> EIO Error Unit
 // Start a transaction block
-lean_obj_res l_hiredis_multi(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_multi(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "MULTI");

@@ -1,8 +1,8 @@
-// lmpop :: UInt64 -> List ByteArray -> UInt8 -> Option UInt64 -> EIO Error (Option (ByteArray × List ByteArray))
+// lmpop :: Ctx -> List ByteArray -> UInt8 -> Option UInt64 -> EIO Error (Option (ByteArray × List ByteArray))
 // Pop elements from multiple lists
 // direction: 0 = LEFT, 1 = RIGHT
 // count: optional count of elements to pop
-lean_obj_res l_hiredis_lmpop(uint64_t ctx, b_lean_obj_arg keys, uint8_t direction, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_lmpop(b_lean_obj_arg ctx, b_lean_obj_arg keys, uint8_t direction, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

@@ -1,7 +1,7 @@
 // Reconnection support for redis-lean
 
 // Reconnect using the same connection parameters
-lean_obj_res l_hiredis_reconnect(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_reconnect(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     int result = redisReconnect(c);
@@ -15,20 +15,18 @@ lean_obj_res l_hiredis_reconnect(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Check if connection is still alive (using PING)
-lean_obj_res l_hiredis_is_connected(uint64_t ctx, lean_obj_arg w) {
-    if (ctx == 0) {
+lean_obj_res l_hiredis_is_connected(b_lean_obj_arg ctx, lean_obj_arg w) {
+    // A closed connection is a legitimate answer of `false` here, not an error,
+    // so this deliberately does not use VALIDATE_REDIS_CTX.
+    GET_REDIS_CONN(conn, ctx);
+
+    if (conn->closed || conn->redis == NULL) {
         return lean_io_result_mk_ok(lean_box(0)); // false
     }
-
-    VALIDATE_REDIS_CTX(c, ctx);
-
-    // Check for errors on the context
-    if (c->err) {
+    if (conn->redis->err) {
         return lean_io_result_mk_ok(lean_box(0)); // false
     }
-
-    // Check file descriptor
-    if (c->fd <= 0) {
+    if (conn->redis->fd <= 0) {
         return lean_io_result_mk_ok(lean_box(0)); // false
     }
 
@@ -36,13 +34,13 @@ lean_obj_res l_hiredis_is_connected(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Get the file descriptor for the connection
-lean_obj_res l_hiredis_get_fd(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_get_fd(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
     return lean_io_result_mk_ok(lean_box_uint32((uint32_t)c->fd));
 }
 
 // Get the connection error string (if any)
-lean_obj_res l_hiredis_get_error(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_get_error(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     if (c->err) {
@@ -57,7 +55,7 @@ lean_obj_res l_hiredis_get_error(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Clear the error state
-lean_obj_res l_hiredis_clear_error(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_clear_error(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
     c->err = 0;
     c->errstr[0] = '\0';

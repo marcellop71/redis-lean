@@ -1,6 +1,6 @@
-// touch :: UInt64 -> List ByteArray -> EIO Error UInt64
+// touch :: Ctx -> List ByteArray -> EIO Error UInt64
 // Alter the last access time of keys
-lean_obj_res l_hiredis_touch(uint64_t ctx, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_touch(b_lean_obj_arg ctx, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   size_t num_keys = 0;

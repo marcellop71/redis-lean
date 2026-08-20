@@ -1,6 +1,6 @@
-// lastsave :: UInt64 -> EIO Error UInt64
+// lastsave :: Ctx -> EIO Error UInt64
 // Get the UNIX timestamp of the last successful save to disk
-lean_obj_res l_hiredis_lastsave(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_lastsave(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "LASTSAVE");

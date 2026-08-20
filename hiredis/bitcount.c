@@ -1,6 +1,6 @@
-// bitcount :: UInt64 -> ByteArray -> Option Int64 -> Option Int64 -> EIO Error UInt64
+// bitcount :: Ctx -> ByteArray -> Option Int64 -> Option Int64 -> EIO Error UInt64
 // Count the number of set bits in a string
-lean_obj_res l_hiredis_bitcount(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg start_opt, b_lean_obj_arg end_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_bitcount(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg start_opt, b_lean_obj_arg end_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

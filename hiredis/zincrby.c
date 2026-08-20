@@ -1,6 +1,6 @@
-// zincrby :: UInt64 -> ByteArray -> Float -> ByteArray -> EIO Error Float
+// zincrby :: Ctx -> ByteArray -> Float -> ByteArray -> EIO Error Float
 // Increment the score of a member in a sorted set
-lean_obj_res l_hiredis_zincrby(uint64_t ctx, b_lean_obj_arg key, double increment, b_lean_obj_arg member, lean_obj_arg w) {
+lean_obj_res l_hiredis_zincrby(b_lean_obj_arg ctx, b_lean_obj_arg key, double increment, b_lean_obj_arg member, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

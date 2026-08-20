@@ -17,7 +17,7 @@ def ex0 : EIO Error Unit := do
 
     try
       Log.EIO.info "set message → Hello, FFI!"
-      FFI.set ctx key value
+      let _ ← FFI.set ctx key value
       Log.EIO.info "✓ set complete"
     catch e =>
       Log.EIO.error s!"✗ set error: {e}"
@@ -45,7 +45,7 @@ def ex1 : EIO Error Unit := do
       for (keyStr, valueStr) in testData do
         let key := String.toUTF8 keyStr
         let value := String.toUTF8 valueStr
-        FFI.set ctx key value
+        let _ ← FFI.set ctx key value
       Log.EIO.info "✓ set up test data"
     catch e =>
       Log.EIO.error s!"✗ setup error: {e}"
@@ -70,7 +70,7 @@ def ex2 : EIO Error Unit := do
 
     try
       Log.EIO.info "set existing → I exist"
-      FFI.set ctx existingKey existingValue
+      let _ ← FFI.set ctx existingKey existingValue
       Log.EIO.info "✓ set complete"
     catch e =>
       Log.EIO.error s!"✗ set error: {e}"

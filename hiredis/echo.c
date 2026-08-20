@@ -1,6 +1,6 @@
-// echo :: UInt64 -> ByteArray -> EIO Error ByteArray
+// echo :: Ctx -> ByteArray -> EIO Error ByteArray
 // Echo the given message
-lean_obj_res l_hiredis_echo(uint64_t ctx, b_lean_obj_arg message, lean_obj_arg w) {
+lean_obj_res l_hiredis_echo(b_lean_obj_arg ctx, b_lean_obj_arg message, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* m = (const char*)lean_sarray_cptr(message);
   size_t m_len = lean_sarray_size(message);

@@ -1,7 +1,7 @@
-// copy :: UInt64 -> ByteArray -> ByteArray -> Bool -> EIO Error Bool
+// copy :: Ctx -> ByteArray -> ByteArray -> Bool -> EIO Error Bool
 // Copy a key to another key
 // replace: if true, remove destination key before copying
-lean_obj_res l_hiredis_copy(uint64_t ctx, b_lean_obj_arg src, b_lean_obj_arg dst, uint8_t replace, lean_obj_arg w) {
+lean_obj_res l_hiredis_copy(b_lean_obj_arg ctx, b_lean_obj_arg src, b_lean_obj_arg dst, uint8_t replace, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(src);
   size_t s_len = lean_sarray_size(src);

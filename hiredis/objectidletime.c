@@ -1,6 +1,6 @@
-// objectidletime :: UInt64 -> ByteArray -> EIO Error (Option UInt64)
+// objectidletime :: Ctx -> ByteArray -> EIO Error (Option UInt64)
 // Get the idle time of a key (seconds since last accessed)
-lean_obj_res l_hiredis_objectidletime(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+lean_obj_res l_hiredis_objectidletime(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

@@ -1,5 +1,5 @@
-// ping :: UInt64 -> ByteArray -> EIO RedisError Bool
-lean_obj_res l_hiredis_ping(uint64_t ctx, b_lean_obj_arg msg, lean_obj_arg w) {
+// ping :: Ctx -> ByteArray -> EIO RedisError Bool
+lean_obj_res l_hiredis_ping(b_lean_obj_arg ctx, b_lean_obj_arg msg, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* m = (const char*)lean_sarray_cptr(msg);
   size_t m_len = lean_sarray_size(msg);

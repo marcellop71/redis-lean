@@ -1,5 +1,5 @@
-// keys :: UInt64 -> ByteArray -> EIO RedisError (List ByteArray)
-lean_obj_res l_hiredis_keys(uint64_t ctx, b_lean_obj_arg pattern, lean_obj_arg w) {
+// keys :: Ctx -> ByteArray -> EIO RedisError (List ByteArray)
+lean_obj_res l_hiredis_keys(b_lean_obj_arg ctx, b_lean_obj_arg pattern, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* p = (const char*)lean_sarray_cptr(pattern);
   size_t p_len = lean_sarray_size(pattern);

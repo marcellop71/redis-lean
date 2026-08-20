@@ -1,6 +1,6 @@
-// sadd :: UInt64 -> ByteArray -> ByteArray -> EIO RedisError UInt64
+// sadd :: Ctx -> ByteArray -> ByteArray -> EIO RedisError UInt64
 // Redis returns an error if the value stored at key is not a set
-lean_obj_res l_hiredis_sadd(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg member, lean_obj_arg w) {
+lean_obj_res l_hiredis_sadd(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg member, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

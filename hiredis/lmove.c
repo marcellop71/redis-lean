@@ -1,8 +1,8 @@
-// lmove :: UInt64 -> ByteArray -> ByteArray -> UInt8 -> UInt8 -> EIO Error ByteArray
+// lmove :: Ctx -> ByteArray -> ByteArray -> UInt8 -> UInt8 -> EIO Error ByteArray
 // Move element from source to destination
 // srcDir: 0 = LEFT, 1 = RIGHT
 // dstDir: 0 = LEFT, 1 = RIGHT
-lean_obj_res l_hiredis_lmove(uint64_t ctx, b_lean_obj_arg src, b_lean_obj_arg dst, uint8_t srcDir, uint8_t dstDir, lean_obj_arg w) {
+lean_obj_res l_hiredis_lmove(b_lean_obj_arg ctx, b_lean_obj_arg src, b_lean_obj_arg dst, uint8_t srcDir, uint8_t dstDir, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(src);
   size_t s_len = lean_sarray_size(src);
@@ -25,7 +25,7 @@ lean_obj_res l_hiredis_lmove(uint64_t ctx, b_lean_obj_arg src, b_lean_obj_arg ds
 
   lean_object* out;
   if (r->type == REDIS_REPLY_NIL) {
-    lean_object* error = mk_redis_key_not_found_error(s);
+    lean_object* error = mk_redis_key_not_found_error_n(s, s_len);
     freeReplyObject(r);
     return lean_io_result_mk_error(error);
   } else if (r->type == REDIS_REPLY_STRING && r->str) {

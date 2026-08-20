@@ -1,8 +1,8 @@
-// zrangestore :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> ByteArray -> Bool -> EIO Error UInt64
+// zrangestore :: Ctx -> ByteArray -> ByteArray -> ByteArray -> ByteArray -> Bool -> EIO Error UInt64
 // Store the result of ZRANGE in a new sorted set
 // src: source key, dst: destination key, min/max: range bounds
 // rangeType: "BYSCORE", "BYLEX", or "" for index range
-lean_obj_res l_hiredis_zrangestore(uint64_t ctx, b_lean_obj_arg dst, b_lean_obj_arg src, b_lean_obj_arg min, b_lean_obj_arg max, b_lean_obj_arg range_type, uint8_t rev, lean_obj_arg w) {
+lean_obj_res l_hiredis_zrangestore(b_lean_obj_arg ctx, b_lean_obj_arg dst, b_lean_obj_arg src, b_lean_obj_arg min, b_lean_obj_arg max, b_lean_obj_arg range_type, uint8_t rev, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* d = (const char*)lean_sarray_cptr(dst);
   size_t d_len = lean_sarray_size(dst);

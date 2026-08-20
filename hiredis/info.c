@@ -1,6 +1,6 @@
-// info :: UInt64 -> Option ByteArray -> EIO Error ByteArray
+// info :: Ctx -> Option ByteArray -> EIO Error ByteArray
 // Get server information and statistics
-lean_obj_res l_hiredis_info(uint64_t ctx, b_lean_obj_arg section_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_info(b_lean_obj_arg ctx, b_lean_obj_arg section_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r;

@@ -1,8 +1,8 @@
-// hrandfield :: UInt64 -> ByteArray -> Option Int64 -> Bool -> EIO Error (List ByteArray)
+// hrandfield :: Ctx -> ByteArray -> Option Int64 -> Bool -> EIO Error (List ByteArray)
 // Get random fields from a hash
 // count: if provided, return count fields; if negative, can return duplicates
 // withvalues: if true, return field-value pairs
-lean_obj_res l_hiredis_hrandfield(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg count_opt, uint8_t withvalues, lean_obj_arg w) {
+lean_obj_res l_hiredis_hrandfield(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg count_opt, uint8_t withvalues, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

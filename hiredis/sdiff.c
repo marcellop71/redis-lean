@@ -1,6 +1,6 @@
-// sdiff :: UInt64 -> List ByteArray -> EIO Error (List ByteArray)
+// sdiff :: Ctx -> List ByteArray -> EIO Error (List ByteArray)
 // Get the difference between the first set and all successive sets
-lean_obj_res l_hiredis_sdiff(uint64_t ctx, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_sdiff(b_lean_obj_arg ctx, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   size_t num_keys = 0;

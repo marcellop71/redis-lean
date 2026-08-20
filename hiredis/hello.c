@@ -1,5 +1,5 @@
-// hello :: UInt64 -> UInt64 -> EIO RedisError ByteArray
-lean_obj_res l_hiredis_hello(uint64_t ctx, uint64_t protocol_version, lean_obj_arg w) {
+// hello :: Ctx -> UInt64 -> EIO RedisError ByteArray
+lean_obj_res l_hiredis_hello(b_lean_obj_arg ctx, uint64_t protocol_version, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   
   redisReply* r = (redisReply*)redisCommand(c, "HELLO %" PRIu64, protocol_version);

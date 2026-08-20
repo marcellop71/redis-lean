@@ -1,6 +1,6 @@
-// slowlogreset :: UInt64 -> EIO Error Unit
+// slowlogreset :: Ctx -> EIO Error Unit
 // Reset the slow log
-lean_obj_res l_hiredis_slowlogreset(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_slowlogreset(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "SLOWLOG RESET");

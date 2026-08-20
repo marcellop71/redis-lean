@@ -38,6 +38,29 @@ inductive Error where
   | otherError (msg: String)
   deriving Repr, Inhabited
 
+/-- A short, bounded label naming only the *kind* of failure.
+
+Use this, not `toString`, as a metrics or log-aggregation key. `toString`
+embeds the offending key or server message, so counting by it produces one
+bucket per distinct key — unbounded cardinality, and in a Prometheus export
+unbounded label cardinality. -/
+def Error.kind : Error → String
+  | .connectError k => match k with
+    | .IOError _        => "connect.io"
+    | .EOFError _       => "connect.eof"
+    | .protocolError _  => "connect.protocol"
+    | .otherError _     => "connect.other"
+  | .sslError k => match k with
+    | .initFailed _            => "ssl.init"
+    | .contextCreationFailed _ => "ssl.context"
+    | .handshakeFailed _       => "ssl.handshake"
+  | .nullReplyError _           => "nullReply"
+  | .replyError _               => "reply"
+  | .unexpectedReplyTypeError _ => "unexpectedReplyType"
+  | .keyNotFoundError _         => "keyNotFound"
+  | .noExpiryDefinedError _     => "noExpiryDefined"
+  | .otherError _               => "other"
+
 instance : ToString Error where
   toString
   | .connectError kind => s!"connect error: {kind}"

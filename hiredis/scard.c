@@ -1,5 +1,5 @@
-// scard :: UInt64 -> ByteArray -> EIO RedisError UInt64
-lean_obj_res l_hiredis_scard(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+// scard :: Ctx -> ByteArray -> EIO RedisError UInt64
+lean_obj_res l_hiredis_scard(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

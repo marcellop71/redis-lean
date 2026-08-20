@@ -1,6 +1,6 @@
-// sinterstore :: UInt64 -> ByteArray -> List ByteArray -> EIO Error UInt64
+// sinterstore :: Ctx -> ByteArray -> List ByteArray -> EIO Error UInt64
 // Store the intersection of sets in a destination key
-lean_obj_res l_hiredis_sinterstore(uint64_t ctx, b_lean_obj_arg dst, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_sinterstore(b_lean_obj_arg ctx, b_lean_obj_arg dst, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* d = (const char*)lean_sarray_cptr(dst);
   size_t d_len = lean_sarray_size(dst);

@@ -1,7 +1,7 @@
-// lpop :: UInt64 -> ByteArray -> Option UInt64 -> EIO Error (List ByteArray)
+// lpop :: Ctx -> ByteArray -> Option UInt64 -> EIO Error (List ByteArray)
 // Pop elements from the head of a list
 // count: if None, pop 1 element; if Some n, pop n elements
-lean_obj_res l_hiredis_lpop(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_lpop(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

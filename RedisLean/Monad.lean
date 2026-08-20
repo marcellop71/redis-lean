@@ -10,6 +10,10 @@ namespace Redis
 structure Read where
   config : Config := Config.default
   enableMetrics : Bool := true
+  /-- Record a `Trace` per command. Off by default: tracing costs an extra
+  timestamp and a random id per command, and only the last `maxTraces` are
+  kept. Latency and counters are collected regardless via `enableMetrics`. -/
+  enableTracing : Bool := false
   deriving Repr
 
 -- State maintained during Redis operations
@@ -52,18 +56,24 @@ def liftRedisEIO {α}
       let stop ← IO.monoNanosNow
       let micros := (stop - start) / 1000
       s.recordLatency (toString cmd) micros
+      if r.enableTracing then
+        Metrics.recordTrace s.metrics (toString cmd) start stop true
       return result
     catch e =>
       let stop ← IO.monoNanosNow
       let micros := (stop - start) / 1000
       s.recordLatency (toString cmd) micros
-      Metrics.recordError s.metrics (toString e)
+      -- Key on the error *kind*, not its rendered message: the message embeds
+      -- the offending key, which would give the counter unbounded cardinality.
+      Metrics.recordError s.metrics e.kind
+      if r.enableTracing then
+        Metrics.recordTrace s.metrics (toString cmd) start stop false (some (toString e))
       throw e
   else
     ExceptT.mk (EIO.toIO' (f s.ctx))
 
 def connect (r : Read) : ExceptT Error IO State := do
-  let ctxResult ← ExceptT.mk (EIO.toIO' (FFI.connect r.config.host (UInt32.ofNat r.config.port) r.config.ssl))
+  let ctxResult ← ExceptT.mk (EIO.toIO' (FFI.connectConfig r.config))
   let metrics ← Metrics.make
   if r.enableMetrics then
     Metrics.recordEvent metrics "connection_established"

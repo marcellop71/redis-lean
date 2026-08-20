@@ -1,6 +1,6 @@
-// zunionstore :: UInt64 -> ByteArray -> List ByteArray -> EIO Error UInt64
+// zunionstore :: Ctx -> ByteArray -> List ByteArray -> EIO Error UInt64
 // Store the union of multiple sorted sets
-lean_obj_res l_hiredis_zunionstore(uint64_t ctx, b_lean_obj_arg dest, b_lean_obj_arg keys, lean_obj_arg w) {
+lean_obj_res l_hiredis_zunionstore(b_lean_obj_arg ctx, b_lean_obj_arg dest, b_lean_obj_arg keys, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* d = (const char*)lean_sarray_cptr(dest);
   size_t d_len = lean_sarray_size(dest);

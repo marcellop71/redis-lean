@@ -1,6 +1,6 @@
-// rpoplpush :: UInt64 -> ByteArray -> ByteArray -> EIO Error ByteArray
+// rpoplpush :: Ctx -> ByteArray -> ByteArray -> EIO Error ByteArray
 // Pop from tail of source and push to head of destination (deprecated, use LMOVE)
-lean_obj_res l_hiredis_rpoplpush(uint64_t ctx, b_lean_obj_arg src, b_lean_obj_arg dst, lean_obj_arg w) {
+lean_obj_res l_hiredis_rpoplpush(b_lean_obj_arg ctx, b_lean_obj_arg src, b_lean_obj_arg dst, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(src);
   size_t s_len = lean_sarray_size(src);
@@ -18,7 +18,7 @@ lean_obj_res l_hiredis_rpoplpush(uint64_t ctx, b_lean_obj_arg src, b_lean_obj_ar
 
   lean_object* out;
   if (r->type == REDIS_REPLY_NIL) {
-    lean_object* error = mk_redis_key_not_found_error(s);
+    lean_object* error = mk_redis_key_not_found_error_n(s, s_len);
     freeReplyObject(r);
     return lean_io_result_mk_error(error);
   } else if (r->type == REDIS_REPLY_STRING && r->str) {

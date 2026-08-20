@@ -40,101 +40,70 @@ def allUnitTests : TestSeq :=
     RedisTests.PoolTests.allPoolTests ++
     RedisTests.MathlibTests.allMathlibTests
 
--- Integration tests (placeholder - requires Redis server)
-def allIntegrationTests : TestSeq :=
-  group "Redis-Lean Integration Tests" $
-    RedisTests.Integration.allIntegrationTests
+-- Unit tests run at elaboration time, so a failure fails the build.
+-- Integration tests need a live server and are run from `main` instead
+-- (`lake exe redis_tests integration`), so building never requires Redis.
+#lspec allUnitTests
 
--- Complete test suite
-def completeTestSuite : TestSeq :=
-  allUnitTests ++ allIntegrationTests
+/-- Run the integration suite. Returns the process exit code. -/
+def runIntegration : IO UInt32 := do
+  IO.println "Integration tests (database 15, prefixed keys, cleaned up afterwards)"
+  if !(← RedisTests.Integration.serverAvailable) then
+    IO.eprintln s!"  no Redis server reachable at \
+      {RedisTests.Integration.testConfig.host}:{RedisTests.Integration.testConfig.port}"
+    IO.eprintln "  start one and re-run, e.g.  docker run -p 6379:6379 redis:alpine"
+    return 2
+  let (passed, failed, failures) ← RedisTests.Integration.runAll
+  IO.println ""
+  IO.println s!"  {passed} passed, {failed} failed"
+  if failed > 0 then
+    IO.println ""
+    IO.println "  Failures:"
+    for f in failures do
+      IO.println s!"    - {f}"
+    return 1
+  return 0
 
--- Interactive test runner (runs at compile time)
-#lspec completeTestSuite
-
--- Main function for command-line execution
+-- Main function for command-line execution.
+--
+-- Every branch returns a meaningful exit code. The previous version printed
+-- "All tests passed at compile time via #lspec" and returned 0 unconditionally,
+-- so running the binary in CI reported success no matter what.
 def main (args : List String) : IO UInt32 := do
-  -- Initialize zlog
   let logOk ← Log.initZlog "config/zlog.conf" "redis-tests"
   if !logOk then
     IO.eprintln "Warning: Failed to initialize zlog, falling back to stderr"
 
-  match args with
-  | ["unit"] => do
-    Log.info "Running unit tests only..."
-    Log.info "Unit tests passed at compile time via #lspec"
-    Log.info ""
-    Log.info "Test coverage includes:"
-    Log.info "  - Codec tests (String, Int, Nat, Bool, ByteArray)"
-    Log.info "  - Config tests (parsing, creation, roundtrip)"
-    Log.info "  - Error tests (construction, pattern matching)"
-    Log.info "  - MockRedis tests (all data structures)"
-    Log.info "  - TypedKey tests (phantom types, namespaces)"
-    Log.info "  - Metrics tests (percentiles, counts, export)"
-    Log.info "  - Pool tests (configuration, scenarios)"
-    Log.info "  - Mathlib tests (data structures, key generation)"
-    Log.finiZlog
+  let usage (code : UInt32) : IO UInt32 := do
+    IO.println "Usage: lake exe redis_tests [command]"
+    IO.println ""
+    IO.println "  unit         Report on the unit suite (it runs at build time via #lspec)"
+    IO.println "  integration  Run the integration suite against a live Redis server"
+    IO.println "  all          Both (default)"
+    IO.println "  list         List available suites"
+    return code
+
+  let unitReport : IO UInt32 := do
+    -- These are elaboration-time checks: reaching this point at all means the
+    -- module compiled, which means they passed.
+    IO.println "Unit tests: passed at build time (#lspec in RedisTests.TestRunner)"
+    IO.println "  Codec, Config, Error, MockRedis, TypedKey, Metrics, Pool, Mathlib"
     return 0
-  | ["integration"] => do
-    Log.info "Running integration tests (Redis server required)..."
-    Log.info "Integration tests are placeholders - require actual Redis server"
-    Log.info ""
-    Log.info "To run with a Redis server:"
-    Log.info "  1. Start Redis: docker run -p 6379:6379 redis:alpine"
-    Log.info "  2. Run: lake exe testRunner integration"
-    Log.finiZlog
-    return 0
-  | ["mock"] => do
-    Log.info "Running MockRedis tests..."
-    Log.info "MockRedis tests passed at compile time via #lspec"
-    Log.finiZlog
-    return 0
-  | ["mathlib"] => do
-    Log.info "Running Mathlib integration tests..."
-    Log.info "Mathlib tests passed at compile time via #lspec"
-    Log.finiZlog
-    return 0
-  | ["list"] => do
-    Log.info "Available test suites:"
-    Log.info "  unit        - All unit tests (no Redis required)"
-    Log.info "  integration - Integration tests (requires Redis)"
-    Log.info "  mock        - MockRedis tests"
-    Log.info "  mathlib     - Mathlib data structure tests"
-    Log.info "  all         - Complete test suite (default)"
-    Log.finiZlog
-    return 0
-  | ["all"] | [] => do
-    Log.info "Running all tests..."
-    Log.info "All tests passed at compile time via #lspec"
-    Log.info ""
-    Log.info "Test summary:"
-    Log.info "  - Codec: 8 test groups"
-    Log.info "  - Config: 11 test groups"
-    Log.info "  - Error: 10 test groups"
-    Log.info "  - MockRedis: 6 test groups"
-    Log.info "  - TypedKey: 9 test groups"
-    Log.info "  - Metrics: 8 test groups"
-    Log.info "  - Pool: 7 test groups"
-    Log.info "  - Mathlib: 13 test groups"
-    Log.info "  - Integration: 9 test groups (placeholders)"
-    Log.finiZlog
-    return 0
-  | _ => do
-    Log.info "Redis-Lean Test Runner"
-    Log.info ""
-    Log.info "Usage: testRunner [command]"
-    Log.info ""
-    Log.info "Commands:"
-    Log.info "  unit        - Run unit tests only (no Redis server needed)"
-    Log.info "  integration - Run integration tests (requires Redis server)"
-    Log.info "  mock        - Run MockRedis tests"
-    Log.info "  mathlib     - Run Mathlib structure tests"
-    Log.info "  list        - List available test suites"
-    Log.info "  all         - Run all tests (default)"
-    Log.info ""
-    Log.info "Examples:"
-    Log.info "  lake exe testRunner"
-    Log.info "  lake exe testRunner unit"
-    Log.info "  lake exe testRunner list"
-    Log.finiZlog
-    return 1
+
+  let code ← match args with
+    | ["unit"]        => unitReport
+    | ["integration"] => runIntegration
+    | ["list"]        => do
+        IO.println "Available suites:"
+        IO.println "  unit         no Redis required (runs at build time)"
+        IO.println "  integration  requires a Redis server on 127.0.0.1:6379"
+        return 0
+    | ["all"] | []    => do
+        let a ← unitReport
+        IO.println ""
+        let b ← runIntegration
+        return (if a != 0 then a else b)
+    | _               => usage 1
+
+  Log.finiZlog
+  return code

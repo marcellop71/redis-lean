@@ -1,7 +1,7 @@
-// bzpopmax :: UInt64 -> List ByteArray -> Float -> EIO Error (Option (ByteArray × ByteArray × ByteArray))
+// bzpopmax :: Ctx -> List ByteArray -> Float -> EIO Error (Option (ByteArray × ByteArray × ByteArray))
 // Blocking pop with highest score from multiple sorted sets
 // Returns (key, member, score) or none on timeout
-lean_obj_res l_hiredis_bzpopmax(uint64_t ctx, b_lean_obj_arg keys, double timeout, lean_obj_arg w) {
+lean_obj_res l_hiredis_bzpopmax(b_lean_obj_arg ctx, b_lean_obj_arg keys, double timeout, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   // Count keys

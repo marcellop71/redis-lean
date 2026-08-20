@@ -1,9 +1,9 @@
-// getex :: UInt64 -> ByteArray -> Option UInt64 -> Option UInt64 -> Bool -> EIO Error ByteArray
+// getex :: Ctx -> ByteArray -> Option UInt64 -> Option UInt64 -> Bool -> EIO Error ByteArray
 // Get the value and optionally set expiration
 // exSeconds: EX option (seconds)
 // pxMillis: PX option (milliseconds)
 // persist: PERSIST option (remove TTL)
-lean_obj_res l_hiredis_getex(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg ex_opt, b_lean_obj_arg px_opt, uint8_t persist, lean_obj_arg w) {
+lean_obj_res l_hiredis_getex(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg ex_opt, b_lean_obj_arg px_opt, uint8_t persist, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);
@@ -52,7 +52,7 @@ lean_obj_res l_hiredis_getex(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg ex
 
   lean_object* out;
   if (r->type == REDIS_REPLY_NIL) {
-    lean_object* error = mk_redis_key_not_found_error(k);
+    lean_object* error = mk_redis_key_not_found_error_n(k, k_len);
     freeReplyObject(r);
     return lean_io_result_mk_error(error);
   } else if (r->type == REDIS_REPLY_STRING && r->str) {

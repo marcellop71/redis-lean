@@ -1,6 +1,6 @@
-// clientgetname :: UInt64 -> EIO Error (Option ByteArray)
+// clientgetname :: Ctx -> EIO Error (Option ByteArray)
 // Get the current connection's name
-lean_obj_res l_hiredis_clientgetname(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_clientgetname(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "CLIENT GETNAME");

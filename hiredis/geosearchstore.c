@@ -1,6 +1,6 @@
-// geosearchstore :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> ByteArray -> ByteArray -> Float -> ByteArray -> Option UInt64 -> Bool -> EIO Error UInt64
+// geosearchstore :: Ctx -> ByteArray -> ByteArray -> ByteArray -> ByteArray -> ByteArray -> Float -> ByteArray -> Option UInt64 -> Bool -> EIO Error UInt64
 // Store the result of GEOSEARCH in a new key
-lean_obj_res l_hiredis_geosearchstore(uint64_t ctx, b_lean_obj_arg dest, b_lean_obj_arg src, b_lean_obj_arg from_type, b_lean_obj_arg from_value, b_lean_obj_arg by_type, double radius, b_lean_obj_arg unit, b_lean_obj_arg count_opt, uint8_t storedist, lean_obj_arg w) {
+lean_obj_res l_hiredis_geosearchstore(b_lean_obj_arg ctx, b_lean_obj_arg dest, b_lean_obj_arg src, b_lean_obj_arg from_type, b_lean_obj_arg from_value, b_lean_obj_arg by_type, double radius, b_lean_obj_arg unit, b_lean_obj_arg count_opt, uint8_t storedist, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* d = (const char*)lean_sarray_cptr(dest);
   size_t d_len = lean_sarray_size(dest);

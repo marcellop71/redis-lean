@@ -1,6 +1,6 @@
-// randomkey :: UInt64 -> EIO Error (Option ByteArray)
+// randomkey :: Ctx -> EIO Error (Option ByteArray)
 // Return a random key from the keyspace
-lean_obj_res l_hiredis_randomkey(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_randomkey(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   const char* argv[1] = {"RANDOMKEY"};

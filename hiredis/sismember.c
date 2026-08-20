@@ -1,5 +1,5 @@
-// sismember :: UInt64 -> ByteArray -> ByteArray -> EIO RedisError Bool
-lean_obj_res l_hiredis_sismember(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg member, lean_obj_arg w) {
+// sismember :: Ctx -> ByteArray -> ByteArray -> EIO RedisError Bool
+lean_obj_res l_hiredis_sismember(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg member, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

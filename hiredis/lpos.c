@@ -1,8 +1,8 @@
-// lpos :: UInt64 -> ByteArray -> ByteArray -> Option UInt64 -> Option UInt64 -> EIO Error (Option Int64)
+// lpos :: Ctx -> ByteArray -> ByteArray -> Option UInt64 -> Option UInt64 -> EIO Error (Option Int64)
 // Find the position of an element in a list
 // rank: if provided, return the Nth match
 // count: if provided, return up to count matches
-lean_obj_res l_hiredis_lpos(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg element, b_lean_obj_arg rank_opt, b_lean_obj_arg count_opt, lean_obj_arg w) {
+lean_obj_res l_hiredis_lpos(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg element, b_lean_obj_arg rank_opt, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

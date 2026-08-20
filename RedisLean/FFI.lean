@@ -6,8 +6,19 @@ namespace Redis
 
 namespace FFI
 
-/-- Redis context type -/
-abbrev Ctx := UInt64
+/-- A live Redis connection.
+
+This is an opaque handle backed by a C `RedisConnection` registered with Lean's
+GC, so it cannot be fabricated from an arbitrary integer and cannot outlive its
+own storage. The socket is released either by `close` or, if you never call it,
+by the finalizer when the last reference is dropped.
+
+Closing is idempotent, and using a closed connection returns
+`Error.connectError (.otherError "Connection is closed")` rather than
+dereferencing freed memory. -/
+private opaque CtxPointed : NonemptyType
+def Ctx : Type := CtxPointed.type
+instance : Nonempty Ctx := CtxPointed.property
 
 /-- SET command existence options -/
 inductive SetExistsOption where
@@ -56,8 +67,18 @@ opaque connectSSL
   (verifyMode : @& UInt8)
   : EIO Error Ctx
 
-@[extern "l_hiredis_free"]
-opaque free (ctx : @& Ctx) : EIO Error Unit
+/-- Release the socket (and SSL context, if any). Idempotent.
+
+The handle itself stays valid: further operations on it fail with
+"Connection is closed" rather than touching freed memory. The underlying
+storage is reclaimed by the GC once the last reference is dropped, so calling
+this is an optimisation (release the fd promptly), not a requirement. -/
+@[extern "l_hiredis_close"]
+opaque close (ctx : @& Ctx) : EIO Error Unit
+
+/-- Former name for `close`. Kept so existing call sites keep working; note the
+semantics are now "close", and the memory is the GC's responsibility. -/
+def free (ctx : @& Ctx) : EIO Error Unit := close ctx
 
 @[extern "l_hiredis_ping"]
 opaque ping (ctx : @& Ctx) (msg : @& ByteArray) : EIO Error Bool
@@ -69,10 +90,10 @@ opaque auth (ctx : @& Ctx) (password : @& String) : EIO Error Bool
 opaque hello (ctx : @& Ctx) (protocol_version : @& UInt64) : EIO Error ByteArray
 
 @[extern "l_hiredis_set"]
-opaque set (ctx : @& Ctx) (k : @& ByteArray) (v : @& ByteArray) (existsOption : @& UInt8) : EIO Error Unit
+opaque set (ctx : @& Ctx) (k : @& ByteArray) (v : @& ByteArray) (existsOption : @& UInt8) : EIO Error Bool
 
 @[extern "l_hiredis_setex"]
-opaque setex (ctx : @& Ctx) (k : @& ByteArray) (v : @& ByteArray) (msec : @& UInt64) (existsOption : @& UInt8) : EIO Error Unit
+opaque setex (ctx : @& Ctx) (k : @& ByteArray) (v : @& ByteArray) (msec : @& UInt64) (existsOption : @& UInt8) : EIO Error Bool
 
 @[extern "l_hiredis_get"]
 opaque get (ctx : @& Ctx) (k : @& ByteArray) : EIO Error ByteArray
@@ -87,16 +108,16 @@ opaque existsKey (ctx : @& Ctx) (key : @& ByteArray) : EIO Error Bool
 opaque typeKey (ctx : @& Ctx) (key : @& ByteArray) : EIO Error String
 
 @[extern "l_hiredis_incr"]
-opaque incr (ctx : @& Ctx) (key : @& ByteArray) : EIO Error UInt64
+opaque incr (ctx : @& Ctx) (key : @& ByteArray) : EIO Error Int64
 
 @[extern "l_hiredis_incrby"]
-opaque incrby (ctx : @& Ctx) (key : @& ByteArray) (increment : @& Int64) : EIO Error UInt64
+opaque incrby (ctx : @& Ctx) (key : @& ByteArray) (increment : @& Int64) : EIO Error Int64
 
 @[extern "l_hiredis_decr"]
-opaque decr (ctx : @& Ctx) (key : @& ByteArray) : EIO Error UInt64
+opaque decr (ctx : @& Ctx) (key : @& ByteArray) : EIO Error Int64
 
 @[extern "l_hiredis_decrby"]
-opaque decrby (ctx : @& Ctx) (key : @& ByteArray) (decrement : @& Int64) : EIO Error UInt64
+opaque decrby (ctx : @& Ctx) (key : @& ByteArray) (decrement : @& Int64) : EIO Error Int64
 
 @[extern "l_hiredis_sismember"]
 opaque sismember (ctx : @& Ctx) (key : @& ByteArray) (member : @& ByteArray) : EIO Error Bool
@@ -147,7 +168,7 @@ opaque hdel (ctx : @& Ctx) (key : @& ByteArray) (field : @& ByteArray) : EIO Err
 opaque hexists (ctx : @& Ctx) (key : @& ByteArray) (field : @& ByteArray) : EIO Error Bool
 
 @[extern "l_hiredis_hincrby"]
-opaque hincrby (ctx : @& Ctx) (key : @& ByteArray) (field : @& ByteArray) (increment : @& Int64) : EIO Error UInt64
+opaque hincrby (ctx : @& Ctx) (key : @& ByteArray) (field : @& ByteArray) (increment : @& Int64) : EIO Error Int64
 
 @[extern "l_hiredis_hkeys"]
 opaque hkeys (ctx : @& Ctx) (key : @& ByteArray) : EIO Error (List ByteArray)
@@ -762,7 +783,27 @@ def connect (host := "127.0.0.1") (port : UInt32 := 6379) (ssl : Option SSLConfi
       sslConfig.serverName
       verifyMode
 
-def free (ctx : Ctx) : EIO Error Unit := Internal.free ctx
+/-- Release the connection's socket. Idempotent; see `Internal.close`. -/
+def close (ctx : Ctx) : EIO Error Unit := Internal.close ctx
+
+/-- Connect using a `Config`, honouring every field on it.
+
+Unlike `connect`, this issues `SELECT` when `config.database` is non-zero, so a
+configured database index actually takes effect. Prefer this over `connect`
+wherever a `Config` is in hand. -/
+def connectConfig (config : Config) : EIO Error Ctx := do
+  let ctx ← connect config.host (UInt32.ofNat config.port) config.ssl
+  if config.database != 0 then
+    try
+      Internal.selectDb ctx (UInt64.ofNat config.database)
+    catch e =>
+      -- Don't leak the socket if SELECT is rejected (e.g. cluster mode).
+      Internal.close ctx
+      throw e
+  return ctx
+
+/-- Former name for `close`. -/
+def free (ctx : Ctx) : EIO Error Unit := Internal.close ctx
 
 def ping (ctx : Ctx) (msg : ByteArray) : EIO Error Bool := Internal.ping ctx msg
 
@@ -770,10 +811,14 @@ def auth (ctx : Ctx) (password : String) : EIO Error Bool := Internal.auth ctx p
 
 def hello (ctx : Ctx) (protocol_version : UInt64 := 3) : EIO Error ByteArray := Internal.hello ctx protocol_version
 
-def set (ctx : Ctx) (k v : ByteArray) (existsOption : SetExistsOption := .none) : EIO Error Unit :=
+/-- Returns `false` when an `NX`/`XX` condition was not met; plain `SET` always
+returns `true`. -/
+def set (ctx : Ctx) (k v : ByteArray) (existsOption : SetExistsOption := .none) : EIO Error Bool :=
   Internal.set ctx k v existsOption.toUInt8
 
-def setex (ctx : Ctx) (k v : ByteArray) (msec : UInt64) (existsOption : SetExistsOption := .none) : EIO Error Unit :=
+/-- Expiry is in **milliseconds** (the C wrapper issues `SET .. PX`). Returns
+`false` when an `NX`/`XX` condition was not met. -/
+def setex (ctx : Ctx) (k v : ByteArray) (msec : UInt64) (existsOption : SetExistsOption := .none) : EIO Error Bool :=
   Internal.setex ctx k v msec existsOption.toUInt8
 
 def get (ctx : Ctx) (k : ByteArray) : EIO Error ByteArray := Internal.get ctx k
@@ -784,13 +829,13 @@ def existsKey (ctx : Ctx) (key : ByteArray) : EIO Error Bool := Internal.existsK
 
 def typeKey (ctx : Ctx) (key : ByteArray) : EIO Error String := Internal.typeKey ctx key
 
-def incr (ctx : Ctx) (key : ByteArray) : EIO Error UInt64 := Internal.incr ctx key
+def incr (ctx : Ctx) (key : ByteArray) : EIO Error Int64 := Internal.incr ctx key
 
-def incrBy (ctx : Ctx) (key : ByteArray) (increment : Int64) : EIO Error UInt64 := Internal.incrby ctx key increment
+def incrBy (ctx : Ctx) (key : ByteArray) (increment : Int64) : EIO Error Int64 := Internal.incrby ctx key increment
 
-def decr (ctx : Ctx) (key : ByteArray) : EIO Error UInt64 := Internal.decr ctx key
+def decr (ctx : Ctx) (key : ByteArray) : EIO Error Int64 := Internal.decr ctx key
 
-def decrBy (ctx : Ctx) (key : ByteArray) (decrement : Int64) : EIO Error UInt64 := Internal.decrby ctx key decrement
+def decrBy (ctx : Ctx) (key : ByteArray) (decrement : Int64) : EIO Error Int64 := Internal.decrby ctx key decrement
 
 def sismember (ctx : Ctx) (key member : ByteArray) : EIO Error Bool := Internal.sismember ctx key member
 
@@ -824,7 +869,7 @@ def hdel (ctx : Ctx) (key field : ByteArray) : EIO Error UInt64 := Internal.hdel
 
 def hexists (ctx : Ctx) (key field : ByteArray) : EIO Error Bool := Internal.hexists ctx key field
 
-def hincrby (ctx : Ctx) (key field : ByteArray) (increment : Int64) : EIO Error UInt64 := Internal.hincrby ctx key field increment
+def hincrby (ctx : Ctx) (key field : ByteArray) (increment : Int64) : EIO Error Int64 := Internal.hincrby ctx key field increment
 
 def hkeys (ctx : Ctx) (key : ByteArray) : EIO Error (List ByteArray) := Internal.hkeys ctx key
 
@@ -1311,7 +1356,7 @@ def withRedis (host := "127.0.0.1") (port : UInt32 := 6379) (k : Ctx → EIO Err
   try
     k ctx
   finally
-    Internal.free ctx
+    Internal.close ctx
 
 /-- Connect with SSL configuration + auto-free -/
 def withRedisSSL (host := "127.0.0.1") (port : UInt32 := 6379) (ssl : SSLConfig) (k : Ctx → EIO Error α) : EIO Error α := do
@@ -1319,7 +1364,7 @@ def withRedisSSL (host := "127.0.0.1") (port : UInt32 := 6379) (ssl : SSLConfig)
   try
     k ctx
   finally
-    Internal.free ctx
+    Internal.close ctx
 
 -- Helper to convert EIO to IO with error handling
 def toIO {α : Type} (eio : EIO Error α) : IO α :=
@@ -1359,7 +1404,7 @@ def withRedisUnix (path : String) (k : Ctx → EIO Error α) : EIO Error α := d
   try
     k ctx
   finally
-    Internal.free ctx
+    Internal.close ctx
 
 /-! ## Reconnection Support -/
 
@@ -1401,57 +1446,67 @@ def getReply (ctx : Ctx) : EIO Error ByteArray :=
 def flushPipeline (ctx : Ctx) : EIO Error Unit :=
   Internal.flushPipeline ctx
 
-/-- Pipeline builder for batching commands -/
+/-- Pipeline builder for batching commands.
+
+Commands are accumulated as argument vectors, not as interpolated command
+lines. That keeps them binary-safe and removes any question of quoting: a key
+or value containing a space, a quote or a `%` is just another argument. -/
 structure PipelineBuilder where
-  commands : Array String
-  deriving Repr
+  commands : Array (List ByteArray)
+
+/-- `ByteArray` has no `Repr`, and dumping binary payloads would not be useful
+anyway; show the shape of the batch instead. -/
+instance : Repr PipelineBuilder where
+  reprPrec pb _ := Std.Format.text s!"PipelineBuilder({pb.commands.size} commands)"
 
 namespace PipelineBuilder
 
 /-- Create an empty pipeline builder -/
 def empty : PipelineBuilder := ⟨#[]⟩
 
-/-- Add a command to the pipeline -/
-def add (pb : PipelineBuilder) (cmd : String) : PipelineBuilder :=
-  ⟨pb.commands.push cmd⟩
+/-- Add a command given as an explicit argument vector, e.g.
+`pb.add ["SET".toUTF8, key, value]`. -/
+def add (pb : PipelineBuilder) (args : List ByteArray) : PipelineBuilder :=
+  ⟨pb.commands.push args⟩
+
+/-- Add a command whose arguments are strings. -/
+def addArgs (pb : PipelineBuilder) (args : List String) : PipelineBuilder :=
+  pb.add (args.map String.toUTF8)
 
 /-- Add SET command to pipeline -/
 def set (pb : PipelineBuilder) (key value : String) : PipelineBuilder :=
-  pb.add s!"SET {key} {value}"
+  pb.addArgs ["SET", key, value]
 
 /-- Add GET command to pipeline -/
 def get (pb : PipelineBuilder) (key : String) : PipelineBuilder :=
-  pb.add s!"GET {key}"
+  pb.addArgs ["GET", key]
 
 /-- Add INCR command to pipeline -/
 def incr (pb : PipelineBuilder) (key : String) : PipelineBuilder :=
-  pb.add s!"INCR {key}"
+  pb.addArgs ["INCR", key]
 
 /-- Add DEL command to pipeline -/
 def del (pb : PipelineBuilder) (key : String) : PipelineBuilder :=
-  pb.add s!"DEL {key}"
+  pb.addArgs ["DEL", key]
 
 /-- Add HSET command to pipeline -/
 def hset (pb : PipelineBuilder) (key field value : String) : PipelineBuilder :=
-  pb.add s!"HSET {key} {field} {value}"
+  pb.addArgs ["HSET", key, field, value]
 
 /-- Add HGET command to pipeline -/
 def hget (pb : PipelineBuilder) (key field : String) : PipelineBuilder :=
-  pb.add s!"HGET {key} {field}"
+  pb.addArgs ["HGET", key, field]
 
 /-- Number of commands in pipeline -/
 def size (pb : PipelineBuilder) : Nat := pb.commands.size
 
 end PipelineBuilder
 
-/-- Execute a pipeline and return all replies -/
+/-- Execute a pipeline and return all replies, in order. -/
 def executePipeline (ctx : Ctx) (pb : PipelineBuilder) : EIO Error (Array ByteArray) := do
-  -- Send all commands
-  for cmd in pb.commands do
-    appendCommand ctx cmd
-  -- Flush to send
+  for args in pb.commands do
+    appendCommandArgv ctx args
   flushPipeline ctx
-  -- Collect all replies
   let mut replies : Array ByteArray := #[]
   for _ in [:pb.commands.size] do
     let reply ← getReply ctx

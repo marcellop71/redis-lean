@@ -1,6 +1,6 @@
-// zrevrange :: UInt64 -> ByteArray -> Int64 -> Int64 -> Bool -> EIO Error (List ByteArray)
+// zrevrange :: Ctx -> ByteArray -> Int64 -> Int64 -> Bool -> EIO Error (List ByteArray)
 // Get members in a range (high to low)
-lean_obj_res l_hiredis_zrevrange(uint64_t ctx, b_lean_obj_arg key, int64_t start, int64_t stop, uint8_t withscores, lean_obj_arg w) {
+lean_obj_res l_hiredis_zrevrange(b_lean_obj_arg ctx, b_lean_obj_arg key, int64_t start, int64_t stop, uint8_t withscores, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

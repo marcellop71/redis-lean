@@ -1,6 +1,6 @@
-// brpoplpush :: UInt64 -> ByteArray -> ByteArray -> Float -> EIO Error (Option ByteArray)
+// brpoplpush :: Ctx -> ByteArray -> ByteArray -> Float -> EIO Error (Option ByteArray)
 // Blocking pop from tail of source and push to head of destination (deprecated, use BLMOVE)
-lean_obj_res l_hiredis_brpoplpush(uint64_t ctx, b_lean_obj_arg src, b_lean_obj_arg dst, double timeout, lean_obj_arg w) {
+lean_obj_res l_hiredis_brpoplpush(b_lean_obj_arg ctx, b_lean_obj_arg src, b_lean_obj_arg dst, double timeout, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* s = (const char*)lean_sarray_cptr(src);
   size_t s_len = lean_sarray_size(src);

@@ -1,6 +1,6 @@
-// hincrbyfloat :: UInt64 -> ByteArray -> ByteArray -> Float -> EIO Error Float
+// hincrbyfloat :: Ctx -> ByteArray -> ByteArray -> Float -> EIO Error Float
 // Increment the float value of a hash field
-lean_obj_res l_hiredis_hincrbyfloat(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg field, double increment, lean_obj_arg w) {
+lean_obj_res l_hiredis_hincrbyfloat(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg field, double increment, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

@@ -1,6 +1,6 @@
-// configrewrite :: UInt64 -> EIO Error Unit
+// configrewrite :: Ctx -> EIO Error Unit
 // Rewrite the configuration file with current settings
-lean_obj_res l_hiredis_configrewrite(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_configrewrite(b_lean_obj_arg ctx, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
 
   redisReply* r = (redisReply*)redisCommand(c, "CONFIG REWRITE");

@@ -1,13 +1,35 @@
 // Pipeline support for redis-lean
 // Implements true pipelining with redisAppendCommand and redisGetReply
 
-// Append a command to the output buffer (no network round-trip yet)
-// Returns 0 on success, error code on failure
-lean_obj_res l_hiredis_append_command(uint64_t ctx, b_lean_obj_arg command, lean_obj_arg w) {
+// Append a whole command line to the output buffer (no network round-trip yet).
+//
+// The line is split into arguments here rather than handed to hiredis as a
+// format string. Both of the obvious shortcuts are wrong:
+//
+//   redisAppendCommand(c, "%s", line)  -- hiredis only splits arguments in the
+//       *format*, so `%s` makes the entire line a single argument and Redis
+//       answers `ERR unknown command 'SET k v'`.
+//
+//   redisAppendCommand(c, line)        -- splits correctly, but then a `%` in
+//       user data is read as a conversion specifier against an empty va_list.
+//
+// Prefer l_hiredis_append_command_argv: it is binary-safe and needs no quoting.
+lean_obj_res l_hiredis_append_command(b_lean_obj_arg ctx, b_lean_obj_arg command, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
     const char* cmd = lean_string_cstr(command);
 
-    int result = redisAppendCommand(c, "%s", cmd);
+    char** argv = NULL;
+    size_t* argvlen = NULL;
+    int argc = parse_command_args(cmd, &argv, &argvlen);
+    if (argc <= 0) {
+        lean_object* error = mk_redis_null_reply_error("failed to parse command arguments");
+        return lean_io_result_mk_error(error);
+    }
+
+    int result = redisAppendCommandArgv(c, argc, (const char**)argv, argvlen);
+
+    free_parsed_args(argv, argc);
+    free(argvlen);
 
     if (result != REDIS_OK) {
         lean_object* error = mk_redis_error_from_context(c);
@@ -18,7 +40,7 @@ lean_obj_res l_hiredis_append_command(uint64_t ctx, b_lean_obj_arg command, lean
 }
 
 // Append a command with format string and arguments
-lean_obj_res l_hiredis_append_command_argv(uint64_t ctx, b_lean_obj_arg args, lean_obj_arg w) {
+lean_obj_res l_hiredis_append_command_argv(b_lean_obj_arg ctx, b_lean_obj_arg args, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     // Count arguments
@@ -69,7 +91,7 @@ lean_obj_res l_hiredis_append_command_argv(uint64_t ctx, b_lean_obj_arg args, le
 
 // Get the next reply from the pipeline
 // Returns the reply as ByteArray (serialized)
-lean_obj_res l_hiredis_get_reply(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_get_reply(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
     redisReply* reply = NULL;
 
@@ -89,20 +111,20 @@ lean_obj_res l_hiredis_get_reply(uint64_t ctx, lean_obj_arg w) {
         case REDIS_REPLY_STRING:
         case REDIS_REPLY_STATUS:
         case REDIS_REPLY_VERB:
-            result_obj = lean_mk_empty_byte_array(lean_box(reply->len));
+            result_obj = lean_alloc_sarray(1, reply->len, reply->len);
             memcpy(lean_sarray_cptr(result_obj), reply->str, reply->len);
             break;
 
         case REDIS_REPLY_INTEGER: {
             char buf[32];
             int len = snprintf(buf, sizeof(buf), "%lld", reply->integer);
-            result_obj = lean_mk_empty_byte_array(lean_box(len));
+            result_obj = lean_alloc_sarray(1, len, len);
             memcpy(lean_sarray_cptr(result_obj), buf, len);
             break;
         }
 
         case REDIS_REPLY_NIL:
-            result_obj = lean_mk_empty_byte_array(lean_box(0));
+            result_obj = lean_alloc_sarray(1, 0, 0);
             break;
 
         case REDIS_REPLY_ERROR: {
@@ -119,7 +141,7 @@ lean_obj_res l_hiredis_get_reply(uint64_t ctx, lean_obj_arg w) {
             {
                 char buf[32];
                 int len = snprintf(buf, sizeof(buf), "ARRAY:%zu", reply->elements);
-                result_obj = lean_mk_empty_byte_array(lean_box(len));
+                result_obj = lean_alloc_sarray(1, len, len);
                 memcpy(lean_sarray_cptr(result_obj), buf, len);
             }
             break;
@@ -127,18 +149,18 @@ lean_obj_res l_hiredis_get_reply(uint64_t ctx, lean_obj_arg w) {
         case REDIS_REPLY_DOUBLE: {
             char buf[64];
             int len = snprintf(buf, sizeof(buf), "%.17g", reply->dval);
-            result_obj = lean_mk_empty_byte_array(lean_box(len));
+            result_obj = lean_alloc_sarray(1, len, len);
             memcpy(lean_sarray_cptr(result_obj), buf, len);
             break;
         }
 
         case REDIS_REPLY_BOOL:
-            result_obj = lean_mk_empty_byte_array(lean_box(1));
+            result_obj = lean_alloc_sarray(1, 1, 1);
             ((uint8_t*)lean_sarray_cptr(result_obj))[0] = reply->integer ? '1' : '0';
             break;
 
         case REDIS_REPLY_BIGNUM:
-            result_obj = lean_mk_empty_byte_array(lean_box(reply->len));
+            result_obj = lean_alloc_sarray(1, reply->len, reply->len);
             memcpy(lean_sarray_cptr(result_obj), reply->str, reply->len);
             break;
 
@@ -154,7 +176,7 @@ lean_obj_res l_hiredis_get_reply(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Get pending reply count (commands sent but not yet read)
-lean_obj_res l_hiredis_get_pending_count(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_get_pending_count(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     // The output buffer length indicates pending commands
@@ -165,7 +187,7 @@ lean_obj_res l_hiredis_get_pending_count(uint64_t ctx, lean_obj_arg w) {
 }
 
 // Flush the output buffer (send all pending commands)
-lean_obj_res l_hiredis_flush_pipeline(uint64_t ctx, lean_obj_arg w) {
+lean_obj_res l_hiredis_flush_pipeline(b_lean_obj_arg ctx, lean_obj_arg w) {
     VALIDATE_REDIS_CTX(c, ctx);
 
     // redisBufferWrite sends pending data

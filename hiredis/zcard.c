@@ -1,7 +1,7 @@
-// zcard :: UInt64 -> ByteArray -> EIO RedisError UInt64
+// zcard :: Ctx -> ByteArray -> EIO RedisError UInt64
 // Get the number of elements in the sorted set stored at key. Returns the cardinality (number of elements) of the sorted set
 // NOTE: Redis returns an error if the value stored at key is not a sorted set
-lean_obj_res l_hiredis_zcard(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+lean_obj_res l_hiredis_zcard(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

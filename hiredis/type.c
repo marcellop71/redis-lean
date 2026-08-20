@@ -1,5 +1,5 @@
-// type :: UInt64 -> ByteArray -> EIO RedisError String
-lean_obj_res l_hiredis_type(uint64_t ctx, b_lean_obj_arg key, lean_obj_arg w) {
+// type :: Ctx -> ByteArray -> EIO RedisError String
+lean_obj_res l_hiredis_type(b_lean_obj_arg ctx, b_lean_obj_arg key, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

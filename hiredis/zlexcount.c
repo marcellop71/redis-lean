@@ -1,7 +1,7 @@
-// zlexcount :: UInt64 -> ByteArray -> ByteArray -> ByteArray -> EIO Error UInt64
+// zlexcount :: Ctx -> ByteArray -> ByteArray -> ByteArray -> EIO Error UInt64
 // Count members in a sorted set with scores between min and max (lex order)
 // min/max format: "[value" or "(value" or "-" or "+"
-lean_obj_res l_hiredis_zlexcount(uint64_t ctx, b_lean_obj_arg key, b_lean_obj_arg min, b_lean_obj_arg max, lean_obj_arg w) {
+lean_obj_res l_hiredis_zlexcount(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg min, b_lean_obj_arg max, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);

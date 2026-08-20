@@ -1,6 +1,6 @@
-// expire :: UInt64 -> ByteArray -> UInt64 -> EIO Error Bool
+// expire :: Ctx -> ByteArray -> UInt64 -> EIO Error Bool
 // Set a key's time to live in seconds
-lean_obj_res l_hiredis_expire(uint64_t ctx, b_lean_obj_arg key, uint64_t seconds, lean_obj_arg w) {
+lean_obj_res l_hiredis_expire(b_lean_obj_arg ctx, b_lean_obj_arg key, uint64_t seconds, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
   const char* k = (const char*)lean_sarray_cptr(key);
   size_t k_len = lean_sarray_size(key);
