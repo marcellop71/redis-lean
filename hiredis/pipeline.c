@@ -201,3 +201,115 @@ lean_obj_res l_hiredis_flush_pipeline(b_lean_obj_arg ctx, lean_obj_arg w) {
 
     return lean_io_result_mk_ok(lean_box(0));
 }
+
+// Get the next pipelined reply, decoding array-shaped replies.
+//
+// This is the `get_reply_array` companion that l_hiredis_get_reply's
+// ARRAY branch has always pointed at. Returns List (Option ByteArray):
+//
+//   ARRAY / SET / MAP reply  -> one entry per element, in order:
+//       NIL                  -> none
+//       STRING/STATUS/VERB   -> some bytes
+//       INTEGER              -> some (decimal ASCII)
+//       DOUBLE               -> some ("%.17g" ASCII)
+//       BIGNUM               -> some bytes
+//       nested ARRAY         -> error (flat replies only: HGETALL,
+//                               SMEMBERS, HMGET, ZRANGE, LRANGE, ...)
+//   scalar reply             -> singleton list (NIL -> [none]), so one
+//                               drain loop can read a mixed pipeline.
+//   ERROR reply              -> Lean error (consume-and-raise; the
+//                               caller's drain must keep reading the
+//                               remaining replies, same contract as
+//                               l_hiredis_get_reply).
+static lean_object* pipeline_element_to_option(redisReply* element, int* err) {
+    lean_object* payload = NULL;
+    char buf[64];
+    switch (element->type) {
+        case REDIS_REPLY_NIL:
+            return lean_box(0); // none
+        case REDIS_REPLY_STRING:
+        case REDIS_REPLY_STATUS:
+        case REDIS_REPLY_VERB:
+        case REDIS_REPLY_BIGNUM:
+            payload = lean_alloc_sarray(1, element->len, element->len);
+            memcpy(lean_sarray_cptr(payload), element->str, element->len);
+            break;
+        case REDIS_REPLY_INTEGER: {
+            int len = snprintf(buf, sizeof(buf), "%lld", element->integer);
+            payload = lean_alloc_sarray(1, len, len);
+            memcpy(lean_sarray_cptr(payload), buf, len);
+            break;
+        }
+        case REDIS_REPLY_DOUBLE: {
+            int len = snprintf(buf, sizeof(buf), "%.17g", element->dval);
+            payload = lean_alloc_sarray(1, len, len);
+            memcpy(lean_sarray_cptr(payload), buf, len);
+            break;
+        }
+        case REDIS_REPLY_BOOL: {
+            payload = lean_alloc_sarray(1, 1, 1);
+            ((uint8_t*)lean_sarray_cptr(payload))[0] = element->integer ? '1' : '0';
+            break;
+        }
+        default:
+            *err = 1; // nested array or unknown: unsupported
+            return lean_box(0);
+    }
+    lean_object* some = lean_alloc_ctor(1, 1, 0);
+    lean_ctor_set(some, 0, payload);
+    return some;
+}
+
+lean_obj_res l_hiredis_get_reply_array(b_lean_obj_arg ctx, lean_obj_arg w) {
+    VALIDATE_REDIS_CTX(c, ctx);
+    redisReply* reply = NULL;
+
+    int result = redisGetReply(c, (void**)&reply);
+    if (result != REDIS_OK || reply == NULL) {
+        if (reply) freeReplyObject(reply);
+        lean_object* error = c->err ? mk_redis_error_from_context(c)
+                                    : mk_redis_null_reply_error("No reply available");
+        return lean_io_result_mk_error(error);
+    }
+
+    if (reply->type == REDIS_REPLY_ERROR) {
+        lean_object* err = mk_redis_reply_error(reply->str);
+        freeReplyObject(reply);
+        return lean_io_result_mk_error(err);
+    }
+
+    lean_object* result_list = lean_box(0); // []
+    int bad = 0;
+
+    if (reply->type == REDIS_REPLY_ARRAY || reply->type == REDIS_REPLY_SET ||
+        reply->type == REDIS_REPLY_MAP  || reply->type == REDIS_REPLY_PUSH) {
+        for (int j = (int)reply->elements - 1; j >= 0 && !bad; j--) {
+            lean_object* opt = pipeline_element_to_option(reply->element[j], &bad);
+            if (bad) { lean_dec(opt); break; }
+            lean_object* cons = lean_alloc_ctor(1, 2, 0);
+            lean_ctor_set(cons, 0, opt);
+            lean_ctor_set(cons, 1, result_list);
+            result_list = cons;
+        }
+    } else {
+        // Scalar reply: singleton, so a mixed pipeline drains uniformly.
+        lean_object* opt = pipeline_element_to_option(reply, &bad);
+        if (!bad) {
+            lean_object* cons = lean_alloc_ctor(1, 2, 0);
+            lean_ctor_set(cons, 0, opt);
+            lean_ctor_set(cons, 1, result_list);
+            result_list = cons;
+        }
+    }
+
+    freeReplyObject(reply);
+
+    if (bad) {
+        lean_dec(result_list);
+        lean_object* err = mk_redis_unexpected_reply_type_error(
+            "get_reply_array: nested array replies are not supported");
+        return lean_io_result_mk_error(err);
+    }
+
+    return lean_io_result_mk_ok(result_list);
+}

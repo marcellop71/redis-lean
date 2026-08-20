@@ -737,6 +737,9 @@ opaque appendCommandArgv (ctx : @& Ctx) (args : @& List ByteArray) : EIO Error U
 @[extern "l_hiredis_get_reply"]
 opaque getReply (ctx : @& Ctx) : EIO Error ByteArray
 
+@[extern "l_hiredis_get_reply_array"]
+opaque getReplyArray (ctx : @& Ctx) : EIO Error (List (Option ByteArray))
+
 @[extern "l_hiredis_flush_pipeline"]
 opaque flushPipeline (ctx : @& Ctx) : EIO Error Unit
 
@@ -1441,6 +1444,22 @@ def appendCommandArgv (ctx : Ctx) (args : List ByteArray) : EIO Error Unit :=
 /-- Get the next reply from the pipeline -/
 def getReply (ctx : Ctx) : EIO Error ByteArray :=
   Internal.getReply ctx
+
+/-- Get the next pipelined reply with **array replies decoded** — the
+    `get_reply_array` companion `getReply`'s ARRAY branch has always
+    pointed at (`getReply` collapses array-shaped replies to the
+    literal string `"ARRAY:{n}"`).
+
+    An `ARRAY`/`SET`/`MAP` reply yields one entry per element
+    (`nil` → `none`; bulk strings / status / integers / doubles as
+    bytes). A scalar reply yields a singleton list, so one drain loop
+    can read a mixed pipeline of `HGETALL`/`SMEMBERS`/`GET`/`SADD`.
+    Nested-array replies (`EXEC`, `XRANGE`, …) raise — flat replies
+    only. An error reply raises after consuming it, same contract as
+    `getReply`: the caller's drain must still read the remaining
+    replies off the socket. -/
+def getReplyArray (ctx : Ctx) : EIO Error (List (Option ByteArray)) :=
+  Internal.getReplyArray ctx
 
 /-- Flush the output buffer (send all pending commands) -/
 def flushPipeline (ctx : Ctx) : EIO Error Unit :=
