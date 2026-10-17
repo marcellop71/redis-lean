@@ -14,13 +14,25 @@
         pkgs = nixpkgs.legacyPackages.${system};
         zlogDeps = zlog-lean.lib.${system};
         arrowDeps = arrow-lean.lib.${system};
-        # Platform-specific Lean 4 binary
-        leanVersion = "4.29.0";
-        leanPlatform = if pkgs.stdenv.isDarwin then "darwin" else "linux";
-        leanArch = if pkgs.stdenv.isDarwin then "darwin" else "linux";
-        leanSha256 = if pkgs.stdenv.isDarwin
-          then "sha256-/6y9ZMYLzJBY42kL4/93fZMloIx5XLuyduUPq10GYRo="
-          else "sha256-CJ9+UT7T6UNtGR9JhjMMC1OAnIa1mX9et/JVUMN0+kg=";
+        # Lean 4 release binary. Keep `leanVersion` equal to
+        # `lean-toolchain` (leanprover/lean4:v4.35.0) and refresh the
+        # four hashes together:
+        #   curl -sL https://github.com/leanprover/lean4/releases/download/v$V/lean-$V-$P.tar.zst \
+        #     | sha256sum | cut -d' ' -f1 | xxd -r -p | base64      # → sha256-…
+        # (or `nix hash file` on the downloaded tarball).
+        leanVersion = "4.35.0";
+        leanPlatform = {
+          "x86_64-linux"   = "linux";
+          "aarch64-linux"  = "linux_aarch64";
+          "x86_64-darwin"  = "darwin";
+          "aarch64-darwin" = "darwin_aarch64";
+        }.${system} or (throw "redis-lean: no Lean release tarball for ${system}");
+        leanSha256 = {
+          "linux"          = "sha256-colZekRUMkbJInuMrlAXZ+CVzhf21Ei5X8So3Jcmj20=";
+          "linux_aarch64"  = "sha256-yPD4o5IOg5cYsTQ+Z4H9gKPpsQJPvNcHjrMPVOgGsCg=";
+          "darwin"         = "sha256-C0O+XH7Ps2AWVmpBAFq2K9sEdD5r/Vg35F95bvR1C04=";
+          "darwin_aarch64" = "sha256-wMbzTzW6HcxcSl/RBv76uetehGlxJiTdLIaNUbYxd8I=";
+        }.${leanPlatform};
 
         lean4Bin = pkgs.stdenv.mkDerivation {
           pname = "lean4";
@@ -37,7 +49,7 @@
           '';
           installPhase = ''
             mkdir -p $out
-            cp -r lean-${leanVersion}-${leanArch}/* $out/
+            cp -r lean-${leanVersion}-${leanPlatform}/* $out/
           '';
         };
 
