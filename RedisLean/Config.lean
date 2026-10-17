@@ -46,7 +46,17 @@ structure Config where
   port : Nat := 6379
   database : Nat := 0
   ssl : Option SSLConfig := none
-  deriving Repr
+  /-- ACL user name (Redis 6+). With only `password` set, `AUTH <password>` logs in as
+      the `default` user (or works with `requirepass`). -/
+  username : Option String := none
+  /-- Password sent with `AUTH` right after connecting (and after a reconnect) -/
+  password : Option String := none
+
+/-- Shows every field but the password, which is masked -/
+instance : Repr Config where
+  reprPrec c _ :=
+    s!"\{ host := {repr c.host}, port := {c.port}, database := {c.database}, ssl := {repr c.ssl}, " ++
+    s!"username := {repr c.username}, password := {if c.password.isSome then "some \"***\"" else "none"} }"
 
 namespace Config
 
@@ -57,6 +67,10 @@ def withHost (host : String) : Config := { host }
 def withPort (port : Nat) : Config := { port }
 
 def withDatabase (database : Nat) : Config := { database }
+
+/-- Log in with `AUTH [username] password` -/
+def withAuth (config : Config) (password : String) (username : Option String := none) : Config :=
+  { config with password := some password, username }
 
 /-- Enable SSL with the given configuration -/
 def withSSL (config : Config) (sslConfig : SSLConfig) : Config :=

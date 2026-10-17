@@ -133,6 +133,19 @@ def example : IO Unit := do
     | .error e => IO.println s!"Error: {e}"
 ```
 
+### Authentication
+
+Set `password` (and `username` for a Redis 6+ ACL user) on the `Config`; `AUTH` is sent right
+after connecting, before `SELECT`, and again after `FFI.reconnectConfig` (hiredis' own
+reconnect does not log in again; connection pools use `reconnectConfig`):
+
+```lean
+let config : Read := { config := Config.default.withAuth "secret" (username := some "app") }
+```
+
+A rejected login fails the connect with the server's error (e.g. `WRONGPASS`). `Repr Config`
+masks the password. Test: `RedisTests/run-auth-test.sh` (throwaway server).
+
 ### Redis Streams
 
 ```lean

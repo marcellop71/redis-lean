@@ -206,7 +206,7 @@ private def validate (pool : Pool) (conn : PooledConnection) : IO Bool := do
   match ← (FFI.isConnected conn.ctx).toBaseIO with
   | .ok true => return true
   | _ =>
-    match ← (FFI.reconnect conn.ctx).toBaseIO with
+    match ← (FFI.reconnectConfig conn.ctx pool.redisConfig).toBaseIO with
     | .ok _ => return true
     | .error _ => return false
 

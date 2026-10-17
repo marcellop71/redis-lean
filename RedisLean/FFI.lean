@@ -86,6 +86,9 @@ opaque ping (ctx : @& Ctx) (msg : @& ByteArray) : EIO Error Bool
 @[extern "l_hiredis_auth"]
 opaque auth (ctx : @& Ctx) (password : @& String) : EIO Error Bool
 
+@[extern "l_hiredis_auth_user"]
+opaque authUser (ctx : @& Ctx) (username : @& String) (password : @& String) : EIO Error Bool
+
 @[extern "l_hiredis_hello"]
 opaque hello (ctx : @& Ctx) (protocol_version : @& UInt64) : EIO Error ByteArray
 
@@ -796,14 +799,29 @@ configured database index actually takes effect. Prefer this over `connect`
 wherever a `Config` is in hand. -/
 def connectConfig (config : Config) : EIO Error Ctx := do
   let ctx ← connect config.host (UInt32.ofNat config.port) config.ssl
-  if config.database != 0 then
-    try
-      Internal.selectDb ctx (UInt64.ofNat config.database)
-    catch e =>
-      -- Don't leak the socket if SELECT is rejected (e.g. cluster mode).
-      Internal.close ctx
-      throw e
+  try
+    setupConnection ctx config
+  catch e =>
+    -- Don't leak the socket if AUTH or SELECT is rejected.
+    Internal.close ctx
+    throw e
   return ctx
+where
+  /-- Log in (`AUTH`, if `config.password` is set) and select the database -/
+  setupConnection (ctx : Ctx) (config : Config) : EIO Error Unit := do
+    if let some password := config.password then
+      let _ ← match config.username with
+        | some user => Internal.authUser ctx user password
+        | none => Internal.auth ctx password
+    if config.database != 0 then
+      Internal.selectDb ctx (UInt64.ofNat config.database)
+
+/-- Reconnect with the original parameters, then log in and select the database again
+    (hiredis' reconnect only reopens the socket: without this a reconnected connection
+    is unauthenticated). -/
+def reconnectConfig (ctx : Ctx) (config : Config) : EIO Error Unit := do
+  Internal.reconnect ctx
+  connectConfig.setupConnection ctx config
 
 /-- Former name for `close`. -/
 def free (ctx : Ctx) : EIO Error Unit := Internal.close ctx
@@ -811,6 +829,9 @@ def free (ctx : Ctx) : EIO Error Unit := Internal.close ctx
 def ping (ctx : Ctx) (msg : ByteArray) : EIO Error Bool := Internal.ping ctx msg
 
 def auth (ctx : Ctx) (password : String) : EIO Error Bool := Internal.auth ctx password
+
+/-- `AUTH <username> <password>` (Redis 6+ ACL users) -/
+def authUser (ctx : Ctx) (username password : String) : EIO Error Bool := Internal.authUser ctx username password
 
 def hello (ctx : Ctx) (protocol_version : UInt64 := 3) : EIO Error ByteArray := Internal.hello ctx protocol_version
 

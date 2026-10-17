@@ -35,6 +35,11 @@ lean_exe redis_examples where
 lean_exe redis_tests where
   root := `RedisTests.TestRunner
 
+/-- Authentication test (username / password, reconnect): `RedisTests/run-auth-test.sh`
+    starts a throwaway redis-server and runs this. -/
+lean_exe «auth-test» where
+  root := `RedisTests.AuthMain
+
 target hiredis_shim_o pkg : FilePath := do
   let hiredisDir := pkg.dir / "hiredis"
   let srcFile := hiredisDir / "shim.c"
