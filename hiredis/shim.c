@@ -48,6 +48,7 @@
 #include "xread.c"
 #include "xreadgroup.c"
 #include "xrange.c"
+#include "command_argv.c"
 #include "xlen.c"
 #include "xdel.c"
 #include "xtrim.c"

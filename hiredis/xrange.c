@@ -1,4 +1,5 @@
-// xrange :: Ctx -> ByteArray -> ByteArray -> ByteArray -> Option UInt64 -> EIO RedisError (List (ByteArray × List (ByteArray × ByteArray)))
+// xrange :: Ctx -> ByteArray -> ByteArray -> ByteArray -> Option UInt64 -> EIO RedisError ByteArray
+// (newline-separated entries, as XREAD; see xrangeEntries for parsed entries)
 // Get range of entries from stream between start and end IDs, with optional count
 lean_obj_res l_hiredis_xrange(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj_arg start_id, b_lean_obj_arg end_id, b_lean_obj_arg count_opt, lean_obj_arg w) {
   VALIDATE_REDIS_CTX(c, ctx);
@@ -54,11 +55,15 @@ lean_obj_res l_hiredis_xrange(b_lean_obj_arg ctx, b_lean_obj_arg key, b_lean_obj
 
   lean_object* out;
   if (r->type == REDIS_REPLY_ARRAY) {
-    // Parse the array of entries - for now return raw reply as ByteArray  
-    // TODO: Proper parsing of stream entry structure
-    const char* reply_str = "XRANGE_REPLY";
-    lean_object* result = lean_alloc_sarray(1, strlen(reply_str), strlen(reply_str));
-    memcpy(lean_sarray_cptr(result), reply_str, strlen(reply_str));
+    // Same newline-separated serialization as XREAD (see xread.c); use
+    // `xrangeEntries` (RedisLean/Streams.lean) for the parsed entries.
+    size_t total = calc_reply_size(r);
+    char* buf = (char*)malloc(total + 1);
+    size_t written = total > 0 ? serialize_reply(r, buf, 0) : 0;
+    if (written > 0 && buf[written - 1] == '\n') written--;  // drop trailing newline, as XREAD
+    lean_object* result = lean_alloc_sarray(1, written, written);
+    if (written > 0) memcpy(lean_sarray_cptr(result), buf, written);
+    free(buf);
     out = result;
   } else if (r->type == REDIS_REPLY_ERROR && r->str) {
     lean_object* error = mk_redis_reply_error(r->str);

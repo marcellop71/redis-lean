@@ -160,6 +160,25 @@ def streamExample : IO Unit := do
     )
 ```
 
+`xread`/`xreadgroup`/`xrange` return the reply flattened into newline-separated text.
+For parsed entries (ids and field/value pairs, binary-safe) use `RedisLean.Streams`:
+
+```lean
+-- (stream, entries) pairs; [] on timeout
+let streams ← xreadEntries [("mystream", "$")] (count := some 10) (blockMs := some 1000)
+for (stream, entries) in streams do
+  for e in entries do
+    IO.println s!"{stream} {e.id} {e.fieldString? "field1"}"
+
+-- consumer groups: ">" = new entries, "0" = this consumer's pending ones
+let fresh ← xreadgroupEntries "workers" "worker-1" [("mystream", ">")] (count := some 10)
+
+let entries ← xrangeEntries "mystream" "-" "+"   -- Array StreamEntry
+```
+
+These run on `commandArgv`, which executes any command given as an argument vector and
+returns the reply tree (`Redis.Reply`); `commandReply` is its `RedisM` form.
+
 ## Arrow Integration (RedisArrow)
 
 The `RedisArrow` module provides high-level integration between Arrow columnar data and Redis, implementing two patterns:

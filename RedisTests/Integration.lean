@@ -1,4 +1,5 @@
 import RedisLean.Ops
+import RedisLean.Streams
 import RedisLean.Monad
 import RedisLean.Config
 import RedisLean.Cache
@@ -336,9 +337,58 @@ def connectionCases : List Case := [
     return (← rget (p ++ "seq")) == "10"
 ]
 
+def streamCases : List Case := [
+  c "Stream" "commandReply returns the reply tree" fun p => do
+    let _ ← commandReply .RPUSH ["RPUSH", p ++ "l", "a", "b"]
+    match ← commandReply .LRANGE ["LRANGE", p ++ "l", "0", "-1"] with
+    | .arr #[.str a, .str b] => return String.fromUTF8? a == some "a" && String.fromUTF8? b == some "b"
+    | _ => return false,
+
+  c "Stream" "xrangeEntries keeps fields, values with newlines and binary data" fun p => do
+    let k := p ++ "st1"
+    let _ ← commandReply .XADD ["XADD", k, "*", "msg", "line1\nline2", "n", "1"]
+    let _ ← commandReply .XADD ["XADD", k, "*", "msg", "second"]
+    let es ← xrangeEntries k "-" "+"
+    return es.size == 2 && es[0]!.fieldString? "msg" == some "line1\nline2" &&
+      es[0]!.fieldString? "n" == some "1" && es[1]!.fields.size == 1,
+
+  c "Stream" "xreadEntries returns entries after an id, per stream" fun p => do
+    let k := p ++ "st2"
+    let first ← commandReply .XADD ["XADD", k, "*", "f", "1"]
+    let _ ← commandReply .XADD ["XADD", k, "*", "f", "2"]
+    let some firstId := first.asString? | return false
+    let res ← xreadEntries [(k, firstId)] (count := some 10)
+    return res.size == 1 && res[0]!.1 == k && res[0]!.2.size == 1 &&
+      res[0]!.2[0]!.fieldString? "f" == some "2",
+
+  c "Stream" "xreadEntries on nothing new returns no streams" fun p => do
+    let k := p ++ "st3"
+    let _ ← commandReply .XADD ["XADD", k, "*", "f", "1"]
+    let res ← xreadEntries [(k, "$")] (blockMs := some 10)
+    return res.isEmpty,
+
+  c "Stream" "xreadgroupEntries delivers new entries once, then as pending" fun p => do
+    let k := p ++ "st4"
+    let _ ← commandReply .COMMAND ["XGROUP", "CREATE", k, "g", "0", "MKSTREAM"]
+    let _ ← commandReply .XADD ["XADD", k, "*", "event", "PING"]
+    let fresh ← xreadgroupEntries "g" "c1" [(k, ">")]
+    let again ← xreadgroupEntries "g" "c1" [(k, ">")]
+    let pending ← xreadgroupEntries "g" "c1" [(k, "0")]
+    return fresh.size == 1 && fresh[0]!.2[0]!.fieldString? "event" == some "PING" &&
+      (again.isEmpty || again.all (·.2.isEmpty)) &&
+      pending.size == 1 && pending[0]!.2.size == 1,
+
+  c "Stream" "xrange (text form) returns the entries, not a placeholder" fun p => do
+    let k := p ++ "st5"
+    let _ ← commandReply .XADD ["XADD", k, "*", "f", "v"]
+    let raw ← xrange k "-" "+"
+    let text := String.fromUTF8! raw
+    return (text.splitOn "\n").contains "f" && (text.splitOn "\n").contains "v"
+]
+
 def allCases : List Case :=
   stringCases ++ keyCases ++ numericCases ++ setCases ++ hashCases
-    ++ sortedSetCases ++ ttlCases ++ lockCases ++ connectionCases
+    ++ sortedSetCases ++ ttlCases ++ lockCases ++ connectionCases ++ streamCases
 
 /-! ## Cases that need raw FFI rather than the `RedisM` layer -/
 

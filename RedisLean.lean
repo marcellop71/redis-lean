@@ -7,6 +7,8 @@ import RedisLean.Log
 import RedisLean.Metrics
 import RedisLean.Monad
 import RedisLean.Ops
+import RedisLean.Reply
+import RedisLean.Streams
 -- New modules
 import RedisLean.TypedKey
 import RedisLean.Cache

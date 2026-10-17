@@ -8,6 +8,7 @@ import RedisTests.MetricsTests
 import RedisTests.PoolTests
 import RedisTests.MathlibTests
 import RedisTests.Integration
+import RedisTests.StreamTests
 import RedisLean.Log
 
 open LSpec
@@ -38,7 +39,8 @@ def allUnitTests : TestSeq :=
     RedisTests.TypedKeyTests.allTypedKeyTests ++
     RedisTests.MetricsTests.allMetricsTests ++
     RedisTests.PoolTests.allPoolTests ++
-    RedisTests.MathlibTests.allMathlibTests
+    RedisTests.MathlibTests.allMathlibTests ++
+    RedisTests.StreamTests.allStreamTests
 
 -- Unit tests run at elaboration time, so a failure fails the build.
 -- Integration tests need a live server and are run from `main` instead
