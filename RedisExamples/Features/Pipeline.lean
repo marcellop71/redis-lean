@@ -127,7 +127,7 @@ def exBulkInsert (ctx : FFI.Ctx) : EIO Error Unit := do
   -- Build pipeline with 100 SET commands
   let mut pb := FFI.PipelineBuilder.empty
   for i in [:100] do
-    pb := pb.add s!"SET bulk:{i} value_{i}"
+    pb := pb.set s!"bulk:{i}" s!"value_{i}"
 
   Log.EIO.info s!"  Built pipeline with {pb.size} commands"
 

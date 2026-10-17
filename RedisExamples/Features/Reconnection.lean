@@ -180,7 +180,7 @@ def exResilientConnection : IO Unit := do
 
     -- Use with auto-reconnect
     let result ← rc.withAutoReconnect fun ctx => do
-      FFI.set ctx "resilient:key".toUTF8 "resilient:value".toUTF8
+      let _ ← FFI.set ctx "resilient:key".toUTF8 "resilient:value".toUTF8
       let value ← FFI.get ctx "resilient:key".toUTF8
       pure (String.fromUTF8! value)
 
