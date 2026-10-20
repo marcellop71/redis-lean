@@ -76,8 +76,8 @@ require LSpec from git
   "https://github.com/argumentcomputer/LSpec.git" @ "main"
 
 require zlogLean from git
-  "git@github.com:marcellop71/zlog-lean.git" @ "v4.35.0"
+  "https://github.com/marcellop71/zlog-lean" @ "v4.35.0"
 
 require arrowLean from git
-  "git@github.com:marcellop71/arrow-lean.git" @ "v4.35.0"
+  "https://github.com/marcellop71/arrow-lean" @ "v4.35.0"
 
