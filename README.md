@@ -108,7 +108,7 @@ Add to your `lakefile.lean`:
 
 ```lean
 require redisLean from git
-  "https://github.com/marcellop71/redis-lean" @ "main"
+  "https://github.com/proofinity-it/redis-lean" @ "main"
 ```
 
 ### Basic Operations
@@ -874,3 +874,8 @@ All Mathlib integration keys use a hierarchical namespace:
 - `arrowLean` - Arrow columnar data (for RedisArrow module)
 - `Cli` - CLI argument parsing
 - `LSpec` - Testing framework
+
+## License
+
+Copyright © 2026 Proofinity s.r.l. Licensed under the Apache License,
+Version 2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE).

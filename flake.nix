@@ -4,8 +4,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    zlog-lean.url = "github:marcellop71/zlog-lean";
-    arrow-lean.url = "github:marcellop71/arrow-lean";
+    zlog-lean.url = "github:proofinity-it/zlog-lean";
+    arrow-lean.url = "github:proofinity-it/arrow-lean";
   };
 
   outputs = { self, nixpkgs, flake-utils, zlog-lean, arrow-lean }:

@@ -32,7 +32,7 @@ brew install redis                 # macOS
 ### Build
 
 ```bash
-git clone https://github.com/marcellop71/redis-lean.git
+git clone https://github.com/proofinity-it/redis-lean.git
 cd redis-lean
 lake build
 ```
